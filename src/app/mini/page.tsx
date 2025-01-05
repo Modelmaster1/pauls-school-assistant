@@ -1,6 +1,8 @@
+"use client"
 import { useEffect } from "react";
 
 const TelegramMiniApp = () => {
+
   useEffect(() => {
     // Ensure this runs only in the Telegram WebApp environment
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
@@ -19,6 +21,8 @@ const TelegramMiniApp = () => {
       } else {
         alert("User information could not be retrieved.");
       }
+
+      alert("This is a Telegram Mini App!");
     }
   }, []);
 
