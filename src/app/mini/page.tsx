@@ -1,35 +1,33 @@
-"use client"
+import { useEffect } from "react";
 
-import { useEffect } from 'react';
-
-const Home: React.FC = () => {
+const TelegramMiniApp = () => {
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Extract URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const initData = urlParams.get('initData');
+    // Ensure this runs only in the Telegram WebApp environment
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const telegram = window.Telegram.WebApp;
 
-      // Decode and parse initData, assuming it's Base64 encoded
-      if (initData) {
-        try {
-          const decodedData = JSON.parse(decodeURIComponent(atob(initData)));
-          if (decodedData.user && decodedData.user.id) {
-            const telegramId = decodedData.user.id;
-            alert(`Telegram ID: ${telegramId}`);
-          } else {
-            alert('User data not found');
-          }
-        } catch (error) {
-          console.error('Failed to parse user data', error);
-          alert('Error processing user data');
-        }
+      // Initialize the Telegram WebApp
+      telegram.ready();
+
+      // Fetch user data
+      const user = telegram.initDataUnsafe?.user;
+
+      // If user data is available, display an alert
+      if (user) {
+        const { first_name: firstName = "User", id } = user;
+        alert(`Hello, ${firstName}! Your Telegram ID is ${id}.`);
       } else {
-        alert('No initial data');
+        alert("User information could not be retrieved.");
       }
     }
   }, []);
 
-  return <div>Welcome to your Telegram Mini App</div>;
+  return (
+    <div style={{ textAlign: "center", padding: "20px" }}>
+      <h1>Welcome to Telegram Mini App</h1>
+      <p>This app fetches your Telegram ID and name.</p>
+    </div>
+  );
 };
 
-export default Home;
+export default TelegramMiniApp;
