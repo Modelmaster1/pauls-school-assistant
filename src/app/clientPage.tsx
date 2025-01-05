@@ -82,7 +82,7 @@ export default function Timetable({loginCookie}: {loginCookie: string | null}) {
       <div className="flex min-h-full w-full justify-start gap-0 overflow-x-auto lg:justify-center">
         {staticSchedule &&
           Object.keys(staticSchedule.b).map((key, i) => (
-            <DayColumn key={i} day={key} schedule={staticSchedule.b[key]} />
+            <DayColumn key={i} day={key} schedule={staticSchedule.b[key as keyof typeof staticSchedule.b]} />
           ))}
       </div>
     </main>
@@ -96,7 +96,7 @@ function DayColumn({
   day: string;
   schedule: ScheduleEntry[];
 }) {
-  const [dayName, setDayName] = useState<string>(dayModel[day]);
+  const [dayName, setDayName] = useState<string>(dayModel[day as keyof typeof dayModel]);
   return (
     <div
       className="h-full w-full"
@@ -203,7 +203,7 @@ function Event({
   return (
     <div
       className={eventColorStyles({
-        tint: info.tint,
+        tint: info.tint as keyof ("almostTransparent" | "default" | "red" | "orange" | "blue" | "green" | "purple" | "yellow" | "light" | "clear" | null | undefined),
       })}
       style={{
         height: ((data.periods.length * 45) / totalLength) * 100 + "%",
