@@ -23,6 +23,8 @@ const TelegramMiniApp = () => {
       }
 
       alert("This is a Telegram Mini App!");
+    } else {
+        alert("This is not a Telegram Mini App!");
     }
   }, []);
 

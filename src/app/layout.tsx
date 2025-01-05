@@ -15,6 +15,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} bg-neutral-900 text-neutral-400`} suppressHydrationWarning>
+      <head>
+      <script src="https://telegram.org/js/telegram-web-app.js"></script>
+      </head>
       <body suppressHydrationWarning>
       <ThemeProvider
           attribute="class"
