@@ -1,7 +1,9 @@
 "use client"
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Timetable from "../clientPage";
 
 const TelegramMiniApp = () => {
+    const [telegramData, setTelegramData] = useState<any>(null);
 
   useEffect(() => {
     // Ensure this runs only in the Telegram WebApp environment
@@ -16,23 +18,19 @@ const TelegramMiniApp = () => {
 
       // If user data is available, display an alert
       if (user) {
-        const { first_name: firstName = "User", id } = user;
-        alert(`Hello, ${firstName}! Your Telegram ID is ${id}.`);
+        setTelegramData(user)
       } else {
         alert("User information could not be retrieved.");
       }
 
       alert("This is a Telegram Mini App!");
-    } else {
-        alert("This is not a Telegram Mini App!");
     }
   }, []);
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Welcome to Telegram Mini App</h1>
-      <p>This app fetches your Telegram ID and name.</p>
-    </div>
+    <>
+    {telegramData && <Timetable loginCookie={null} telegramID={telegramData.id} />}
+    </>
   );
 };
 

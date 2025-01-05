@@ -1,4 +1,4 @@
-import { Client, Databases, Models } from 'appwrite';
+import { Client, Databases, Models } from "appwrite";
 
 // Appwrite Client Setup
 const client = new Client();
@@ -9,8 +9,12 @@ client
 const databases = new Databases(client);
 
 // Appwrite Constants
-const DATABASE_ID = '6777e0b0003ce89526c9';
-const COLLECTION_ID = '6777f40c002a2fcc56b7';
+const DATABASE_ID = "6777e0b0003ce89526c9";
+
+export enum Collection {
+    session = "6777f40c002a2fcc56b7",
+    account = "6777e0c8000a1eebfa97"
+}
 
 // Types
 interface DocumentData {
@@ -25,10 +29,11 @@ interface DocumentData {
  */
 export const createDocument = async (
   data: DocumentData,
-  documentId: string = 'unique()'
+  documentId: string = "unique()",
+  collectionId: string
 ): Promise<Models.Document> => {
   try {
-    return await databases.createDocument(DATABASE_ID, COLLECTION_ID, documentId, data);
+    return await databases.createDocument(DATABASE_ID, collectionId, documentId, data);
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -39,9 +44,9 @@ export const createDocument = async (
  * @param documentId - The document ID
  * @returns The fetched document
  */
-export const getDocument = async (documentId: string): Promise<Models.Document> => {
+export const getDocument = async (documentId: string, collectionId: string): Promise<Models.Document> => {
   try {
-    return await databases.getDocument(DATABASE_ID, COLLECTION_ID, documentId);
+    return await databases.getDocument(DATABASE_ID, collectionId, documentId);
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -55,10 +60,11 @@ export const getDocument = async (documentId: string): Promise<Models.Document> 
  */
 export const updateDocument = async (
   documentId: string,
-  data: DocumentData
+  data: DocumentData,
+  collectionId: string
 ): Promise<Models.Document> => {
   try {
-    return await databases.updateDocument(DATABASE_ID, COLLECTION_ID, documentId, data);
+    return await databases.updateDocument(DATABASE_ID, collectionId, documentId, data);
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -69,10 +75,27 @@ export const updateDocument = async (
  * @param documentId - The document ID
  * @returns A success response or throws an error
  */
-export const deleteDocument = async (documentId: string): Promise<void> => {
+export const deleteDocument = async (documentId: string, collectionId: string): Promise<void> => {
   try {
-    await databases.deleteDocument(DATABASE_ID, COLLECTION_ID, documentId);
+    await databases.deleteDocument(DATABASE_ID, collectionId, documentId);
   } catch (error: any) {
     throw new Error(error.message);
   }
 };
+
+/**
+ * List documents in the collection
+ * @param queries - Optional queries for filtering, searching, etc.
+ * @returns A list of documents
+ */
+export const listDocuments = async (
+    queries: string[] = [],
+    collectionId: string
+  ): Promise<Models.DocumentList<Models.Document>> => {
+    try {
+      return await databases.listDocuments(DATABASE_ID, collectionId, queries);
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
+  };
+  

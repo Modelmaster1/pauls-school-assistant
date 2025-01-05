@@ -5,7 +5,8 @@ import { getSchedule } from "~/server/getSchedule";
 import { FullSchedule, ScheduleEntry } from "./models";
 import { SubjectInfo, subjectInfoBase } from "./subjectData";
 import getWeekDates from "./timeFunctions";
-import { getDocument } from "~/server/appwriteFunctions";
+import { Collection, getDocument, listDocuments } from "~/server/appwriteFunctions";
+import { Query } from "appwrite";
 
 function getBreakData(
   lastPeriod: number | undefined,
@@ -34,7 +35,7 @@ function getBreakData(
   }
 }
 
-export default function Timetable({loginCookie}: {loginCookie: string | null}) {
+export default function Timetable({loginCookie, telegramID = null}: {loginCookie: string | null, telegramID?: number | null}) {
   const [dateModel, setDateModel] = useState<{
     monday: Date;
     friday: Date;
@@ -50,23 +51,45 @@ export default function Timetable({loginCookie}: {loginCookie: string | null}) {
     start()
   }, []);
 
+  function generateStaticSchedule(user: any) {
+    getSchedule(user.year).then((data) => {
+      setStaticSchedule(data);
+    });
+  }
+
   async function start() {
+
+    const dateModel = getWeekDates();
+    setDateModel(dateModel);
+
+    if (telegramID) {
+      console.log("running")
+      
+      const stuff = await listDocuments([
+        Query.equal("telegramID", telegramID),
+      ], Collection.account);
+
+      if (stuff.documents.length === 0) {
+        console.log("no user found");
+        return;
+      }
+
+      const user = stuff.documents[0]; // pick the first user with that telegramID
+      setAccountData(user);
+      generateStaticSchedule(user);
+      return
+    }
+
     if (!loginCookie) {
       console.log("You are not logged in");
       return;
     }
 
-    const dateModel = getWeekDates();
-    setDateModel(dateModel);
-
-    const sessionData = await getDocument(loginCookie);
+    const sessionData = await getDocument(loginCookie, Collection.session);
     const user = sessionData.accounts;
 
     setAccountData(user);
-
-    getSchedule(user.year).then((data) => {
-      setStaticSchedule(data);
-    });
+    generateStaticSchedule(user);
   }
 
   return (
