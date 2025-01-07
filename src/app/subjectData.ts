@@ -6,12 +6,7 @@ export const dayModel: { [key: string]: string } = {
   fri: "Friday",
 };
 
-export type SubjectInfo = {
-    name: string;
-    tint: string;
-}
-
-export const subjectInfoBase: { [key: string]: SubjectInfo } = {
+export const subjectInfoBase: { [key: string]: { name: string; tint: string } } = {
   m: {
     name: "Math",
     tint: "blue",
@@ -46,7 +41,7 @@ export const subjectInfoBase: { [key: string]: SubjectInfo } = {
   },
   mu: {
     name: "Music",
-    tint: "light",
+    tint: "gray",
   },
   bio: {
     name: "Bio",
@@ -56,7 +51,7 @@ export const subjectInfoBase: { [key: string]: SubjectInfo } = {
     name: "History",
     tint: "yellow",
   },
-  "kath.rel": {
+  "kathrel": {
     name: "Religion",
     tint: "purple",
   },
@@ -66,7 +61,7 @@ export const subjectInfoBase: { [key: string]: SubjectInfo } = {
   },
   kl: {
     name: "KL",
-    tint: "light",
+    tint: "gray",
   },
   dw: {
     name: "Digitale Welt",

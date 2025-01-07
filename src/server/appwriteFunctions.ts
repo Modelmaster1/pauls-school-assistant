@@ -13,7 +13,10 @@ const DATABASE_ID = "6777e0b0003ce89526c9";
 
 export enum Collection {
     session = "6777f40c002a2fcc56b7",
-    account = "6777e0c8000a1eebfa97"
+    account = "6777e0c8000a1eebfa97",
+    notices = "677d2d920006fd02621e",
+    fullSchedule = "677d3b1400396f415c77",
+    subjectInfo = "677d4e44002e66866bbf"
 }
 
 // Types

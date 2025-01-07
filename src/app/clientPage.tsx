@@ -1,9 +1,8 @@
 "use client";
 import { cva } from "class-variance-authority";
 import { useEffect, useState } from "react";
-import { getSchedule } from "~/server/getSchedule";
-import { FullSchedule, ScheduleEntry } from "./models";
-import { SubjectInfo, subjectInfoBase } from "./subjectData";
+import { getNotices, getSchedule, getSubjectInfo } from "~/server/getSchedule";
+import { FullSchedule, ScheduleEntry, SubjectInfo } from "./models";
 import getWeekDates from "./timeFunctions";
 import { Collection, getDocument, listDocuments } from "~/server/appwriteFunctions";
 import { Query } from "appwrite";
@@ -35,6 +34,8 @@ function getBreakData(
   }
 }
 
+const dayKeys = ["mon", "tue", "wed", "thu", "fri"];
+
 export default function Timetable({loginCookie, telegramID = null}: {loginCookie: string | null, telegramID?: number | null}) {
   const [dateModel, setDateModel] = useState<{
     monday: Date;
@@ -46,14 +47,25 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
   );
 
   const [accountData, setAccountData] = useState<any | null>(null);
+  const [subjectInfo, setSubjectInfo] = useState<SubjectInfo[] | null>(null);
 
   useEffect(() => {
     start()
   }, []);
 
-  function generateStaticSchedule(user: any) {
+  function generateStaticSchedule(user: any, friday: Date) {
+
+    getSubjectInfo().then((data) => {
+      setSubjectInfo(data);
+    });
+
     getSchedule(user.year).then((data) => {
+      console.log(data);
       setStaticSchedule(data);
+    });
+
+    getNotices(user.year, friday).then((data) => {
+      console.log(data);
     });
   }
 
@@ -76,7 +88,7 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
 
       const user = stuff.documents[0]; // pick the first user with that telegramID
       setAccountData(user);
-      generateStaticSchedule(user);
+      generateStaticSchedule(user, dateModel.friday);
       return
     }
 
@@ -89,7 +101,7 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
     const user = sessionData.accounts;
 
     setAccountData(user);
-    generateStaticSchedule(user);
+    generateStaticSchedule(user, dateModel.friday);
   }
 
   return (
@@ -104,8 +116,8 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
 
       <div className="flex min-h-full w-full justify-start gap-0 overflow-x-auto lg:justify-center">
         {staticSchedule &&
-          Object.keys(staticSchedule.b).map((key, i) => (
-            <DayColumn key={i} day={key} schedule={staticSchedule.b[key as keyof typeof staticSchedule.b]} />
+          dayKeys.map((key, i) => (
+            <DayColumn key={i} day={key} schedule={staticSchedule.a[key as keyof typeof staticSchedule.a]} />
           ))}
       </div>
     </main>
@@ -130,7 +142,7 @@ function DayColumn({
           {dayName}
         </div>
 
-        {schedule.map((entry, i) => (
+        {Array.isArray(schedule) && schedule.map((entry, i) => (
           <FullEntry
             key={i}
             data={entry}
@@ -182,7 +194,6 @@ export const eventColorStyles = cva(
   {
     variants: {
       tint: {
-        almostTransparent: "bg-neutral-500/10 outline-neutral-500/50",
         default:
           "bg-[#f8f8f9] dark:bg-[#282828] text-[#666a6d] dark:text-[#b0b2b4] dark:outline-[#b0b2b4]/50",
         red: "bg-red-800/20 text-red-400 outline-red-400/50",
@@ -193,7 +204,7 @@ export const eventColorStyles = cva(
           "bg-purple-100 dark:bg-purple-800/20 text-purple-500 dark:text-purple-300",
         yellow:
           "bg-yellow-100 dark:bg-yellow-800/30 text-yellow-500 dark:text-yellow-300",
-        light: "text-gray-300/80 bg-gray-500/30",
+        gray: "text-gray-300/80 bg-gray-500/30",
         clear:
           "bg-transparent text-neutral-400/70 outline outline-neutral-500/10",
       },
@@ -220,7 +231,7 @@ function Event({
   totalLength: number;
 }) {
   const [info, setInfo] = useState<SubjectInfo>(
-    subjectInfoBase[data.subject] ?? { name: data.subject, tint: "default" },
+     { name: data.subject, tint: "default" },
   );
   const durationRatio: string = "1.25 / " + 0.5 * data.periods.length;
   return (
@@ -237,8 +248,8 @@ function Event({
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
-        <div className="sm:font-semibold">{info.name} (jdl)</div>
-        <div>B2.06</div>
+        <div className="sm:font-semibold">{info.name} ({data.teacher})</div>
+        <div>{data.room}</div>
       </div>
     </div>
   );
