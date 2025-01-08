@@ -27,15 +27,46 @@ export interface FullSchedule {
 }
 
 export type Notice = {
+  $createdAt: Date,
     affectedClass: string,
     date: Date,
     subject: string,
     periods: number[],
-    type: 0,
-    weekType: "Week A" | "Week B",
+    type: string,
+    weekType: "a" | "b",
 }
 
 export type SubjectInfo = {
-    name: string,
-    tint: string,
+    abbreviation: string,
+    name: string | null,
+    nameDe: string | null,
+    tint: string | null,
+}
+
+export type CurrentSchedule = {
+  weekkType: "a" | "b",
+  dates: {
+    mon: Date,
+    fri: Date,
+  }
+  mon: CurrentEntryData[]
+  tue: CurrentEntryData[];
+  wed: CurrentEntryData[];
+  thu: CurrentEntryData[];
+  fri: CurrentEntryData[];
+}
+
+export type CurrentEntryData = {
+  staticData: ScheduleEntry,
+  generalData: { name: string | null, tint: string | null } | null,
+  dynamicData: Notice | null
+}
+
+export type AccountData = {
+  username: string,
+  year: string,
+  telegramID: number | null,
+  ignore: string[],
+  addtional: string[],
+  lang: "en" | "de",
 }

@@ -22,8 +22,6 @@ const TelegramMiniApp = () => {
       } else {
         alert("User information could not be retrieved.");
       }
-
-      alert("This is a Telegram Mini App!");
     }
   }, []);
 

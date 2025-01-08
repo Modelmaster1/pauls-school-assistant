@@ -1,60 +1,92 @@
 "use client";
 import { cva } from "class-variance-authority";
-import { useEffect, useState } from "react";
-import { getNotices, getSchedule, getSubjectInfo } from "~/server/getSchedule";
-import { FullSchedule, ScheduleEntry, SubjectInfo } from "./models";
-import getWeekDates from "./timeFunctions";
-import { Collection, getDocument, listDocuments } from "~/server/appwriteFunctions";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  createCurrentSchedule,
+  getNotices,
+  getSchedule,
+  getSubjectInfo,
+} from "~/server/getSchedule";
+import {
+  AccountData,
+  CurrentEntryData,
+  CurrentSchedule,
+  FullSchedule,
+  ScheduleEntry,
+  SubjectInfo,
+} from "./models";
+import getWeekDates, { getTimeDifferenceInMinutes } from "./timeFunctions";
+import {
+  Collection,
+  getDocument,
+  listDocuments,
+} from "~/server/appwriteFunctions";
 import { Query } from "appwrite";
 
 function getBreakData(
   lastPeriod: number | undefined,
   day: string,
-  isLast: boolean,
+  nextEntry: CurrentEntryData | null,
 ) {
-  if (isLast || !lastPeriod) {
+  if (!nextEntry || !lastPeriod) {
+    // If there is no next entry or the last period is undefined, return no break
     return null;
   }
 
+  const nextPeriod = nextEntry.staticData.periods[0];
+
+  if (!nextPeriod) {
+    return null;
+  }
+
+  const periodDifference = nextPeriod - lastPeriod - 1;
+  const addedBreakTime = periodDifference * 45;
+
   switch (lastPeriod) {
     case 1:
-      return null;
+      return 0 + addedBreakTime;
     case 3:
-      return null;
+      return 0 + addedBreakTime;
     case 5:
       if (day === "wed") {
-        return 45;
+        return 45 + addedBreakTime;
       } else {
-        return null;
+        return 0 + addedBreakTime;
       }
     case 6:
-      return 45;
+      return 45 + addedBreakTime;
     default:
-      return 30;
+      return 30 + addedBreakTime;
   }
 }
 
-const dayKeys = ["mon", "tue", "wed", "thu", "fri"];
-
-export default function Timetable({loginCookie, telegramID = null}: {loginCookie: string | null, telegramID?: number | null}) {
+export default function Timetable({
+  loginCookie,
+  telegramID = null,
+}: {
+  loginCookie: string | null;
+  telegramID?: number | null;
+}) {
   const [dateModel, setDateModel] = useState<{
-    monday: Date;
-    friday: Date;
+    mon: Date;
+    fri: Date;
   } | null>(null);
 
   const [staticSchedule, setStaticSchedule] = useState<FullSchedule | null>(
     null,
   );
 
-  const [accountData, setAccountData] = useState<any | null>(null);
+  const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [subjectInfo, setSubjectInfo] = useState<SubjectInfo[] | null>(null);
 
+  const [currentSchedule, setCurrentSchedule] =
+    useState<CurrentSchedule | null>(null);
+
   useEffect(() => {
-    start()
+    start();
   }, []);
 
   function generateStaticSchedule(user: any, friday: Date) {
-
     getSubjectInfo().then((data) => {
       setSubjectInfo(data);
     });
@@ -70,16 +102,13 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
   }
 
   async function start() {
-
-    const dateModel = getWeekDates();
-    setDateModel(dateModel);
-
     if (telegramID) {
-      console.log("running")
-      
-      const stuff = await listDocuments([
-        Query.equal("telegramID", telegramID),
-      ], Collection.account);
+      console.log("running");
+
+      const stuff = await listDocuments(
+        [Query.equal("telegramID", telegramID)],
+        Collection.account,
+      );
 
       if (stuff.documents.length === 0) {
         console.log("no user found");
@@ -87,9 +116,11 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
       }
 
       const user = stuff.documents[0]; // pick the first user with that telegramID
-      setAccountData(user);
-      generateStaticSchedule(user, dateModel.friday);
-      return
+      if (user) {
+        setAccountData(user);
+        setCurrentSchedule(await createCurrentSchedule(user));
+      }
+      return;
     }
 
     if (!loginCookie) {
@@ -98,26 +129,33 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
     }
 
     const sessionData = await getDocument(loginCookie, Collection.session);
-    const user = sessionData.accounts;
+    const user: AccountData = sessionData.accounts;
 
     setAccountData(user);
-    generateStaticSchedule(user, dateModel.friday);
+    setCurrentSchedule(await createCurrentSchedule(user));
   }
 
   return (
     <main className="min-h-full overflow-hidden p-5">
       <div className="mb-5 flex w-full flex-col items-center">
-        <div className="text-2xl font-bold">{accountData?.year ?? "loading"} Timetable</div>
+        <div className="text-2xl font-bold">
+          {accountData?.year ?? "loading"}{" "}
+          {accountData?.lang === "de" ? "Stundenplan" : "Timetable"}
+        </div>
         <div className="text-sm">
-          {dateModel &&
-            `${dateModel.monday.getDate()}.${(dateModel.monday.getMonth() + 1 < 10 ? "0" : "") + (dateModel.monday.getMonth() + 1)}.${dateModel.monday.getFullYear()} - ${dateModel.friday.getDate()}.${(dateModel.friday.getMonth() + 1 < 10 ? "0" : "") + (dateModel.friday.getMonth() + 1)}.${dateModel.friday.getFullYear()} (A)`}
+          {currentSchedule &&
+            `${currentSchedule.dates.mon.getDate()}.${(currentSchedule.dates.mon.getMonth() + 1 < 10 ? "0" : "") + (currentSchedule.dates.mon.getMonth() + 1)}.${currentSchedule.dates.mon.getFullYear()} - ${currentSchedule.dates.fri.getDate()}.${(currentSchedule.dates.fri.getMonth() + 1 < 10 ? "0" : "") + (currentSchedule.dates.fri.getMonth() + 1)}.${currentSchedule.dates.fri.getFullYear()} (${currentSchedule.weekkType.toUpperCase()})`}
         </div>
       </div>
 
       <div className="flex min-h-full w-full justify-start gap-0 overflow-x-auto lg:justify-center">
-        {staticSchedule &&
-          dayKeys.map((key, i) => (
-            <DayColumn key={i} day={key} schedule={staticSchedule.a[key as keyof typeof staticSchedule.a]} />
+        {currentSchedule &&
+          Object.keys(dayModel).map((key, i) => (
+            <DayColumn
+              key={i}
+              day={key}
+              schedule={currentSchedule[key as keyof typeof currentSchedule]}
+            />
           ))}
       </div>
     </main>
@@ -127,11 +165,17 @@ export default function Timetable({loginCookie, telegramID = null}: {loginCookie
 function DayColumn({
   day,
   schedule,
+  lang,
 }: {
   day: string;
-  schedule: ScheduleEntry[];
+  schedule: CurrentEntryData[];
+  lang?: string;
 }) {
-  const [dayName, setDayName] = useState<string>(dayModel[day as keyof typeof dayModel]);
+  const [dayName, setDayName] = useState<string>(
+    lang === "en"
+      ? dayModel[day as keyof typeof dayModel].en
+      : dayModel[day as keyof typeof dayModel].de,
+  );
   return (
     <div
       className="h-full w-full"
@@ -142,15 +186,22 @@ function DayColumn({
           {dayName}
         </div>
 
-        {Array.isArray(schedule) && schedule.map((entry, i) => (
-          <FullEntry
-            key={i}
-            data={entry}
-            index={i}
-            day={day}
-            isLast={i === schedule.length - 1}
-          />
-        ))}
+        {Array.isArray(schedule) &&
+          schedule.map((entry, i) => (
+            <React.Fragment key={i}>
+              <FullEntry
+                data={entry}
+                isFirst={i === 0}
+                entriesInSameTimeFrame={schedule.filter(
+                  (item) =>
+                    entry.staticData.periods[0] ===
+                      item.staticData.periods[0] &&
+                    item.staticData.subject !== entry.staticData.subject,
+                )}
+                nextEntry={schedule[i + 1] ?? null}
+              />
+            </React.Fragment>
+          ))}
       </div>
     </div>
   );
@@ -158,30 +209,80 @@ function DayColumn({
 
 export function FullEntry({
   data,
-  index,
-  day,
-  isLast,
+  entriesInSameTimeFrame,
+  nextEntry,
+  isFirst,
 }: {
-  data: ScheduleEntry;
-  index: number;
-  day: string;
-  isLast: boolean;
+  entriesInSameTimeFrame: CurrentEntryData[];
+  data: CurrentEntryData;
+  nextEntry: CurrentEntryData | null;
+  isFirst: boolean;
 }) {
+  const itemRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number>(0);
+
+  const shouldBeHidden =
+    entriesInSameTimeFrame.length >= 1 &&
+    nextEntry?.staticData.periods[0] === data.staticData.periods[0];
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(
-    getBreakData(data.periods[data.periods.length - 1], day, isLast),
+    getTimeDifferenceInMinutes(
+      data.staticData.periods[data.staticData.periods.length - 1] ?? null,
+      nextEntry?.staticData.periods[0] ?? null,
+      false,
+    ),
   ); // for break
 
-  const totalLength =
-    data.periods.length * 45 + (calculatedDuration ? calculatedDuration : 0);
+  const [bufferTime, setBufferTime] = useState<number | null>(
+    isFirst
+      ? getTimeDifferenceInMinutes(1, data.staticData.periods[0] ?? null, true)
+      : null,
+  );
 
-  const durationRatio: string = "1.25 / " + ((1 / 3) * totalLength) / 30;
+  const totalLength =
+    (shouldBeHidden ? 0 : data.staticData.periods.length * 45) +
+    (calculatedDuration ? calculatedDuration : 0) +
+    (bufferTime ? bufferTime : 0);
+
+  const dynamicHeight: number = width * (0.009 * totalLength)
+
+  useEffect(() => {
+    const element = itemRef.current;
+
+    if (!element) return;
+
+    const updateWidth = () => {
+      setWidth(element.offsetWidth);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    // Observe the element
+    resizeObserver.observe(element);
+
+    // Set the initial width
+    updateWidth();
+
+    return () => {
+      // Cleanup observer
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <span
       className="flex flex-col gap-0"
-      style={{ aspectRatio: durationRatio, width: "100%" }}
+      style={{ height: dynamicHeight, width: "100%" }}
+      ref={itemRef}
     >
-      <Event totalLength={totalLength} data={data} />
+      {bufferTime && <Break totalLength={totalLength} duration={bufferTime} />}
+      <Event
+        otherEnrties={entriesInSameTimeFrame}
+        totalLength={totalLength}
+        data={data}
+        isHidden={shouldBeHidden}
+      />
       {calculatedDuration && (
         <Break totalLength={totalLength} duration={calculatedDuration} />
       )}
@@ -196,15 +297,17 @@ export const eventColorStyles = cva(
       tint: {
         default:
           "bg-[#f8f8f9] dark:bg-[#282828] text-[#666a6d] dark:text-[#b0b2b4] dark:outline-[#b0b2b4]/50",
-        red: "bg-red-800/20 text-red-400 outline-red-400/50",
+        red: "bg-red-800/25 text-red-300 outline-red-300",
         orange: "bg-orange-800/25 text-orange-400 dark:text-orange-300",
         blue: "bg-blue-100 dark:bg-cyan-800/30 text-blue-500 dark:text-blue-300",
         green: "bg-green-800/30 text-green-500",
+        pink: "bg-pink-900/30 text-pink-400",
         purple:
           "bg-purple-100 dark:bg-purple-800/20 text-purple-500 dark:text-purple-300",
         yellow:
           "bg-yellow-100 dark:bg-yellow-800/30 text-yellow-500 dark:text-yellow-300",
         gray: "text-gray-300/80 bg-gray-500/30",
+        white: "bg-neutral-700 text-neutral-300",
         clear:
           "bg-transparent text-neutral-400/70 outline outline-neutral-500/10",
       },
@@ -216,40 +319,89 @@ export const eventColorStyles = cva(
 );
 
 const dayModel = {
-  mon: "Monday",
-  tue: "Tuesday",
-  wed: "Wednesday",
-  thu: "Thursday",
-  fri: "Friday",
+  mon: {
+    en: "Monday",
+    de: "Montag",
+  },
+  tue: {
+    en: "Tuesday",
+    de: "Dienstag",
+  },
+  wed: {
+    en: "Wednesday",
+    de: "Mittwoch",
+  },
+  thu: {
+    en: "Thursday",
+    de: "Donnerstag",
+  },
+  fri: {
+    en: "Friday",
+    de: "Freitag",
+  },
 };
 
 function Event({
+  otherEnrties,
   data,
   totalLength,
+  isHidden,
 }: {
-  data: ScheduleEntry;
+  data: CurrentEntryData;
+  otherEnrties: CurrentEntryData[];
   totalLength: number;
+  isHidden?: boolean;
 }) {
-  const [info, setInfo] = useState<SubjectInfo>(
-     { name: data.subject, tint: "default" },
-  );
-  const durationRatio: string = "1.25 / " + 0.5 * data.periods.length;
+  const calculatedHeight =
+    ((data.staticData.periods.length * 45) / totalLength) * 100 + "%";
   return (
     <div
       className={eventColorStyles({
-        tint: info.tint as keyof ("almostTransparent" | "default" | "red" | "orange" | "blue" | "green" | "purple" | "yellow" | "light" | "clear" | null | undefined),
+        tint: data.generalData?.tint as keyof (
+          | "almostTransparent"
+          | "white"
+          | "default"
+          | "red"
+          | "orange"
+          | "blue"
+          | "green"
+          | "purple"
+          | "yellow"
+          | "light"
+          | "clear"
+          | null
+          | undefined
+        ),
       })}
       style={{
-        height: ((data.periods.length * 45) / totalLength) * 100 + "%",
+        height: calculatedHeight,
         width: "100%",
+        display: isHidden == true ? "none" : "block",
       }}
     >
       <div
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
-        <div className="sm:font-semibold">{info.name} ({data.teacher})</div>
-        <div>{data.room}</div>
+        <div className=" sm:font-semibold">
+          {data.generalData?.name ?? data.staticData.subject.toUpperCase()} (
+          {data.staticData.teacher})
+        </div>
+        <div className="">
+          {data.staticData.room}
+        </div>
+        <div>
+          {otherEnrties.length >= 1
+            ? "+" +
+              otherEnrties.length +
+              " (" +
+              otherEnrties.map((item) => item.staticData.subject).join(", ") +
+              ")"
+            : null}
+        </div>
+        <div>
+          {data.dynamicData?.type ?? null}
+        </div>
       </div>
     </div>
   );
@@ -262,7 +414,6 @@ function Break({
   duration: number;
   totalLength: number;
 }) {
-  const durationRatio: string = "1.25 / " + ((1 / 3) * duration) / 30; // -16 is to offset the gap between the events
   return (
     <div
       className="flex items-center overflow-hidden rounded-xl text-xs font-light text-neutral-400/50 md:text-base"
