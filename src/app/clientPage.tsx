@@ -1,12 +1,7 @@
 "use client";
 import { cva } from "class-variance-authority";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  createCurrentSchedule,
-  getNotices,
-  getSchedule,
-  getSubjectInfo,
-} from "~/server/getSchedule";
+import { createCurrentSchedule } from "~/server/getSchedule";
 import {
   AccountData,
   CurrentEntryData,
@@ -15,50 +10,13 @@ import {
   ScheduleEntry,
   SubjectInfo,
 } from "./models";
-import getWeekDates, { getTimeDifferenceInMinutes } from "./timeFunctions";
+import { getTimeDifferenceInMinutes } from "./timeFunctions";
 import {
   Collection,
   getDocument,
   listDocuments,
 } from "~/server/appwriteFunctions";
 import { Query } from "appwrite";
-
-function getBreakData(
-  lastPeriod: number | undefined,
-  day: string,
-  nextEntry: CurrentEntryData | null,
-) {
-  if (!nextEntry || !lastPeriod) {
-    // If there is no next entry or the last period is undefined, return no break
-    return null;
-  }
-
-  const nextPeriod = nextEntry.staticData.periods[0];
-
-  if (!nextPeriod) {
-    return null;
-  }
-
-  const periodDifference = nextPeriod - lastPeriod - 1;
-  const addedBreakTime = periodDifference * 45;
-
-  switch (lastPeriod) {
-    case 1:
-      return 0 + addedBreakTime;
-    case 3:
-      return 0 + addedBreakTime;
-    case 5:
-      if (day === "wed") {
-        return 45 + addedBreakTime;
-      } else {
-        return 0 + addedBreakTime;
-      }
-    case 6:
-      return 45 + addedBreakTime;
-    default:
-      return 30 + addedBreakTime;
-  }
-}
 
 export default function Timetable({
   loginCookie,
@@ -67,17 +25,7 @@ export default function Timetable({
   loginCookie: string | null;
   telegramID?: number | null;
 }) {
-  const [dateModel, setDateModel] = useState<{
-    mon: Date;
-    fri: Date;
-  } | null>(null);
-
-  const [staticSchedule, setStaticSchedule] = useState<FullSchedule | null>(
-    null,
-  );
-
   const [accountData, setAccountData] = useState<AccountData | null>(null);
-  const [subjectInfo, setSubjectInfo] = useState<SubjectInfo[] | null>(null);
 
   const [currentSchedule, setCurrentSchedule] =
     useState<CurrentSchedule | null>(null);
@@ -85,21 +33,6 @@ export default function Timetable({
   useEffect(() => {
     start();
   }, []);
-
-  function generateStaticSchedule(user: any, friday: Date) {
-    getSubjectInfo().then((data) => {
-      setSubjectInfo(data);
-    });
-
-    getSchedule(user.year).then((data) => {
-      console.log(data);
-      setStaticSchedule(data);
-    });
-
-    getNotices(user.year, friday).then((data) => {
-      console.log(data);
-    });
-  }
 
   async function start() {
     if (telegramID) {
@@ -154,7 +87,11 @@ export default function Timetable({
             <DayColumn
               key={i}
               day={key}
-              schedule={currentSchedule[key as keyof typeof currentSchedule]}
+              schedule={
+                currentSchedule[
+                  key as keyof typeof currentSchedule
+                ] as CurrentEntryData[]
+              }
             />
           ))}
       </div>
@@ -179,7 +116,7 @@ function DayColumn({
   return (
     <div
       className="h-full w-full"
-      style={{ minWidth: "100px", maxWidth: "230px" }}
+      style={{ minWidth: "100px", maxWidth: "200px" }}
     >
       <div className="flex w-full flex-col gap-0 rounded-2xl p-2 md:px-4 md:py-2">
         <div className="mb-4 flex w-full justify-center text-xs md:text-base">
@@ -243,9 +180,10 @@ export function FullEntry({
     (calculatedDuration ? calculatedDuration : 0) +
     (bufferTime ? bufferTime : 0);
 
-  const dynamicHeight: number = width * (0.009 * totalLength)
+  const dynamicHeight: number = width * (0.009 * totalLength);
 
   useEffect(() => {
+
     const element = itemRef.current;
 
     if (!element) return;
@@ -383,13 +321,11 @@ function Event({
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
-        <div className=" sm:font-semibold">
+        <div className="sm:font-semibold">
           {data.generalData?.name ?? data.staticData.subject.toUpperCase()} (
           {data.staticData.teacher})
         </div>
-        <div className="">
-          {data.staticData.room}
-        </div>
+        <div className="">{data.staticData.room}</div>
         <div>
           {otherEnrties.length >= 1
             ? "+" +
@@ -399,9 +335,7 @@ function Event({
               ")"
             : null}
         </div>
-        <div>
-          {data.dynamicData?.type ?? null}
-        </div>
+        <div>{data.dynamicData?.type ?? null}</div>
       </div>
     </div>
   );

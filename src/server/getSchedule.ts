@@ -12,7 +12,7 @@ import { Collection, listDocuments } from "./appwriteFunctions";
 import { Query } from "appwrite";
 import getWeekDates from "~/app/timeFunctions";
 
-export async function getSchedule(affectedClass: string) {
+async function getSchedule(affectedClass: string) {
   const result = await listDocuments(
     [Query.equal("affectedClass", affectedClass)],
     Collection.fullSchedule,
@@ -22,7 +22,7 @@ export async function getSchedule(affectedClass: string) {
   return schedule;
 }
 
-export async function getSubjectInfo() {
+async function getSubjectInfo() {
   const result = await listDocuments(undefined, Collection.subjectInfo);
 
   const data: SubjectInfo[] = result.documents;
@@ -44,7 +44,18 @@ function isWithinFiveDaysOfFriday(date: Date, friday: Date): boolean {
   return daysDifference <= 5;
 }
 
-export async function getNotices(affectedClass: string, friday: Date) {
+async function getAdditionalSubjects(additional: string[]) {
+  const result = await listDocuments(
+    [Query.contains("subject", additional)],
+    Collection.scheduleEntry,
+  );
+
+  const data: ScheduleEntry[] = result.documents;
+
+  return data;
+}
+
+async function getNotices(affectedClass: string, friday: Date) {
   const result = await listDocuments(
     [Query.equal("affectedClass", affectedClass)],
     Collection.notices,
@@ -67,9 +78,6 @@ function convertEntryToCurrentEntry(
   notice: Notice | null,
   lang: "en" | "de",
 ): CurrentEntryData {
-  if (notice) {
-    console.log("This one has a notice");
-  }
 
   const result: CurrentEntryData = {
     staticData: entry,
@@ -89,12 +97,17 @@ function convertScheduleArray(
   schedule: ScheduleEntry[],
   notices: Notice[],
   subjectInfoBase: SubjectInfo[],
-  weekday: number,
+  weekday: { s: "mon" | "tue" | "wed" | "thu" | "fri"; n: number },
   user: AccountData,
+  additionalSubjects: ScheduleEntry[],
 ) {
   var result: CurrentEntryData[] = [];
 
-  const sortedSchedule = schedule.sort(
+  const activeAdditionalSubjects = additionalSubjects.filter(
+    (subject) => subject.weekDay == weekday.s && !user.ignore.includes(subject.subject),
+  );
+
+  const sortedSchedule = [...schedule, ...activeAdditionalSubjects].sort(
     (a, b) => (a.periods[0] ?? 0) - (b.periods[0] ?? 0),
   );
 
@@ -109,7 +122,7 @@ function convertScheduleArray(
           (notice: Notice) =>
             notice.subject === entry.subject &&
             JSON.stringify(notice.periods) === JSON.stringify(entry.periods) &&
-            notice.date.getDay() == weekday,
+            notice.date.getDay() == weekday.n,
         ) ?? null;
       const currentEntry = convertEntryToCurrentEntry(
         entry,
@@ -124,20 +137,37 @@ function convertScheduleArray(
   return result;
 }
 
-const weekDayModel = {
-  mon: 1,
-  tue: 2,
-  wed: 3,
-  thu: 4,
-  fri: 5,
+const weekDayModel: weekDayModel = {
+  mon: { s: "mon", n: 1 },
+  tue: { s: "tue", n: 2 },
+  wed: { s: "wed", n: 3 },
+  thu: { s: "thu", n: 4 },
+  fri: { s: "fri", n: 5 },
 };
+
+interface weekDayModel {
+  mon: weekDayInfo;
+  tue: weekDayInfo;
+  wed: weekDayInfo;
+  thu: weekDayInfo;
+  fri: weekDayInfo;
+}
+
+interface weekDayInfo {
+  s: "mon" | "tue" | "wed" | "thu" | "fri";
+  n: number;
+}
 
 export async function createCurrentSchedule(user: AccountData) {
   const affectedClass = user.year;
-  const language = user.lang;
   const dateModel = getWeekDates();
   const staticSchedule = await getSchedule(affectedClass);
   const subjectInfo = await getSubjectInfo();
+
+  const additionalSubjects =
+    user.additional.length > 0
+      ? await getAdditionalSubjects(user.additional)
+      : [];
 
   const notices = await getNotices(affectedClass, dateModel.fri);
 
@@ -153,6 +183,7 @@ export async function createCurrentSchedule(user: AccountData) {
       subjectInfo,
       weekDayModel.mon,
       user,
+      additionalSubjects,
     ),
     tue: convertScheduleArray(
       staticSchedule[weekType].tue,
@@ -160,6 +191,7 @@ export async function createCurrentSchedule(user: AccountData) {
       subjectInfo,
       weekDayModel.tue,
       user,
+      additionalSubjects,
     ),
     wed: convertScheduleArray(
       staticSchedule[weekType].wed,
@@ -167,6 +199,7 @@ export async function createCurrentSchedule(user: AccountData) {
       subjectInfo,
       weekDayModel.wed,
       user,
+      additionalSubjects,
     ),
     thu: convertScheduleArray(
       staticSchedule[weekType].thu,
@@ -174,6 +207,7 @@ export async function createCurrentSchedule(user: AccountData) {
       subjectInfo,
       weekDayModel.thu,
       user,
+      additionalSubjects,
     ),
     fri: convertScheduleArray(
       staticSchedule[weekType].fri,
@@ -181,6 +215,7 @@ export async function createCurrentSchedule(user: AccountData) {
       subjectInfo,
       weekDayModel.fri,
       user,
+      additionalSubjects,
     ),
   };
 

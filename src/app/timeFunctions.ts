@@ -40,40 +40,69 @@ const startTimeForPeriods = {
   8: "14:00",
   9: "14:45",
   10: "15:30",
-}
+};
 
-export function getTimeDifferenceInMinutes(lastPeriod: number | null, nextPeriod: number | null, isBufferTime: boolean): number | null {
+export function getTimeDifferenceInMinutes(
+  lastPeriod: number | null,
+  nextPeriod: number | null,
+  isBufferTime: boolean,
+  debug: boolean = false,
+): number | null {
   if (!nextPeriod || !lastPeriod) {
+    if (debug) {
+      console.log(
+        "getTimeDifferenceInMinutes: lastPeriod or nextPeriod is null",
+      );
+    }
     return null;
   }
 
   if (lastPeriod > nextPeriod) {
+    if (debug) {
+      console.log("getTimeDifferenceInMinutes: lastPeriod > nextPeriod");
+    }
     return null;
   }
 
-  const time1 = startTimeForPeriods[lastPeriod as keyof typeof startTimeForPeriods];
-  const time2 = startTimeForPeriods[nextPeriod as keyof typeof startTimeForPeriods];
-  // Parse the time strings (format: HH:mm)
-  const [hours1, minutes1] = time1.split(':').map(Number);
-  const [hours2, minutes2] = time2.split(':').map(Number);
+  if (debug) {
+    console.log("getTimeDifferenceInMinutes: lastPeriod <= nextPeriod");
+  }
 
-  if (!hours1 || !minutes1 || !hours2 || !minutes2) {
-    return 0 // Invalid time format
+  const time1 =
+    startTimeForPeriods[lastPeriod as keyof typeof startTimeForPeriods];
+  const time2 =
+    startTimeForPeriods[nextPeriod as keyof typeof startTimeForPeriods];
+  // Parse the time strings (format: HH:mm)
+  const [hours1, minutes1] = time1.split(":").map(Number);
+  const [hours2, minutes2] = time2.split(":").map(Number);
+
+  if (
+    hours1 === undefined ||
+    minutes1 === undefined ||
+    hours2 === undefined ||
+    minutes2 === undefined
+  ) {
+    if (debug) {
+      console.log(time1, time2);
+      console.log(hours1, minutes1, hours2, minutes2);
+      console.log("getTimeDifferenceInMinutes: Invalid time format");
+    }
+    return 0;
   }
 
   // Convert times to total minutes
   const totalMinutes1 = hours1 * 60 + minutes1 + (isBufferTime ? 0 : 45); // the length of the period
-  
+
   const totalMinutes2 = hours2 * 60 + minutes2;
 
   // Calculate the absolute difference
   const result = Math.abs(totalMinutes1 - totalMinutes2);
 
-  if (!isBufferTime && result > 45) {
-    console.log(lastPeriod, nextPeriod)
-    console.log(totalMinutes1, totalMinutes2)
-    console.log(result)
+  if (debug) {
+    console.log(
+      `${time1} (${lastPeriod}) - ${time2} (${nextPeriod}) = ${result} // ${isBufferTime ? "buffer" : "break"}`,
+    );
   }
-  
+
   return result <= 0 ? null : result;
 }

@@ -16,7 +16,9 @@ export enum Collection {
     account = "6777e0c8000a1eebfa97",
     notices = "677d2d920006fd02621e",
     fullSchedule = "677d3b1400396f415c77",
-    subjectInfo = "677d4e44002e66866bbf"
+    subjectInfo = "677d4e44002e66866bbf",
+
+    scheduleEntry = "677d3b3a001cf9f0cc83",
 }
 
 // Types
@@ -92,13 +94,13 @@ export const deleteDocument = async (documentId: string, collectionId: string): 
  * @returns A list of documents
  */
 export const listDocuments = async (
-    queries: string[] = [],
-    collectionId: string
+  queries: string[] = [],
+  collectionId: string
   ): Promise<Models.DocumentList<Models.Document>> => {
-    try {
-      return await databases.listDocuments(DATABASE_ID, collectionId, queries);
-    } catch (error: any) {
-      throw new Error(error.message);
-    }
-  };
+  try {
+    return await databases.listDocuments(DATABASE_ID, collectionId, queries);
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
   

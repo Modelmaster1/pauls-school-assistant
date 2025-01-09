@@ -4,6 +4,7 @@ export type ScheduleEntry = {
   periods: number[]; // The periods (e.g. [1, 2])
   teacher: string;
   room: string;
+  weekDay: "mon" | "tue" | "wed" | "thu" | "fri" | null;
 }
 
 enum EntryType {
@@ -67,6 +68,6 @@ export type AccountData = {
   year: string,
   telegramID: number | null,
   ignore: string[],
-  addtional: string[],
+  additional: string[],
   lang: "en" | "de",
 }
