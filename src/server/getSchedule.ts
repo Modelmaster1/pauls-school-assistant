@@ -36,6 +36,10 @@ function isWithinFiveDaysOfFriday(date: Date, friday: Date): boolean {
     return false; // Not a weekday
   }
 
+  if (date > friday) {
+    return false;
+  }
+
   // Calculate the difference in days between the given date and the Friday
   const timeDifference = Math.abs(date.getTime() - friday.getTime());
   const daysDifference = timeDifference / (1000 * 60 * 60 * 24);
