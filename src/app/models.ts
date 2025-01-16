@@ -6,10 +6,6 @@ export type ScheduleEntry = {
   room: string;
   weekDay: "mon" | "tue" | "wed" | "thu" | "fri" | null;
 }
-
-enum EntryType {
-    active,
-}
   
 
 // Weekly schedule for a class (Monday to Friday)

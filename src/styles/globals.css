@@ -6,3 +6,19 @@
     --radius: 0.5rem
   }
 }
+
+.cancelled {
+  background-color: transparent;
+  color: rgba(209, 44, 44, 1);
+  outline-color: rgba(207, 48, 48, 0.8);
+  opacity: 0.8;
+  background: repeating-linear-gradient( -45deg, rgba(207, 48, 48, 0.5), rgba(207, 48, 48, 0.5) 10px, transparent 10px, transparent 35px );
+}
+
+.likelyCancelled {
+  background-color: transparent;
+  color: rgba(219, 98, 32, 1);
+  outline-color: rgba(219, 98, 32, 0.8);
+  opacity: 0.8;
+  background: repeating-linear-gradient( -45deg, rgba(219, 98, 32, 0.5), rgba(219, 98, 32, 0.5) 10px, transparent 10px, transparent 35px );
+}

@@ -1,6 +1,6 @@
 "use client";
 import { cva } from "class-variance-authority";
-import React, { useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { createCurrentSchedule } from "~/server/getSchedule";
 import {
   AccountData,
@@ -233,6 +233,7 @@ export const eventColorStyles = cva(
   {
     variants: {
       tint: {
+        none: "",
         default:
           "bg-[#f8f8f9] dark:bg-[#282828] text-[#666a6d] dark:text-[#b0b2b4] dark:outline-[#b0b2b4]/50",
         red: "bg-red-800/25 text-red-300 outline-red-300",
@@ -249,9 +250,15 @@ export const eventColorStyles = cva(
         clear:
           "bg-transparent text-neutral-400/70 outline outline-neutral-500/10",
       },
+      noticeType: {
+        none: "",
+        cancelled: "cancelled",
+        likelyCancelled: "likelyCancelled",
+      }
     },
     defaultVariants: {
       tint: "default",
+      noticeType: "none",
     },
   },
 );
@@ -292,10 +299,11 @@ function Event({
 }) {
   const calculatedHeight =
     ((data.staticData.periods.length * 45) / totalLength) * 100 + "%";
+
   return (
     <div
       className={eventColorStyles({
-        tint: data.generalData?.tint as keyof (
+        tint: data.dynamicData ? "none" : data.generalData?.tint as keyof (
           | "almostTransparent"
           | "white"
           | "default"
@@ -307,6 +315,14 @@ function Event({
           | "yellow"
           | "light"
           | "clear"
+          | null
+          | undefined
+        ),
+
+        noticeType: data.dynamicData?.type as keyof (
+          | "none"
+          | "cancelled"
+          | "likelyCancelled"
           | null
           | undefined
         ),

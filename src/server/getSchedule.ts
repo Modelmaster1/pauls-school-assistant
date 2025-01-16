@@ -69,7 +69,7 @@ async function getNotices(affectedClass: string, friday: Date) {
 
   return notices.filter((notice) =>
     isWithinFiveDaysOfFriday(notice.date, friday),
-  );
+  ).sort((a, b) => b.$createdAt.getTime() - a.$createdAt.getTime());
 }
 
 function convertEntryToCurrentEntry(
@@ -117,6 +117,7 @@ function convertScheduleArray(
         subjectInfoBase.find(
           (info: SubjectInfo) => info.abbreviation === entry.subject,
         ) ?? null;
+
       const notice =
         notices.find(
           (notice: Notice) =>
