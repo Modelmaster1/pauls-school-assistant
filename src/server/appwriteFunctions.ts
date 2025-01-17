@@ -6,19 +6,19 @@ client
   .setEndpoint("https://cloud.appwrite.io/v1") // Your Appwrite endpoint
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID as string); // Your project ID
 
-const databases = new Databases(client);
+export const databases = new Databases(client);
 
 // Appwrite Constants
-const DATABASE_ID = "6777e0b0003ce89526c9";
+export const DATABASE_ID = "6777e0b0003ce89526c9";
 
 export enum Collection {
     session = "6777f40c002a2fcc56b7",
     account = "6777e0c8000a1eebfa97",
     notices = "677d2d920006fd02621e",
-    fullSchedule = "677d3b1400396f415c77",
     subjectInfo = "677d4e44002e66866bbf",
 
     scheduleEntry = "677d3b3a001cf9f0cc83",
+    weeklySchedule = "677d3b21000751a9b427",
 }
 
 // Types
