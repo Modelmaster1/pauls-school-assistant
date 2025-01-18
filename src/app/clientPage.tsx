@@ -23,32 +23,31 @@ export default function HomePage({
       telegram.ready();
 
       const user = telegram.initDataUnsafe?.user;
-      setTelegramUser(user);
+      setTelegramUser(user ?? null);
 
       start(user?.id ?? null);
     }
   }, []);
 
   async function start(telegramID: number | null) {
-    if (telegramID) {
-      const account = await fetchAccountData(telegramID);
-
-      if (account) {
-        setAccountData(account);
+    try {
+      if (telegramID) {
+        const account = await fetchAccountData(telegramID);
+        if (account) {
+          setAccountData(account);
+        }
+        return;
       }
-      return;
+  
+      const sessionData = await getDocument(loginCookie, Collection.session);
+      const user: AccountData = sessionData.accounts;
+      setAccountData(user);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      // Add user-friendly error handling here
     }
-
-    if (!loginCookie) {
-      alert("You are not logged in");
-      return;
-    }
-
-    const sessionData = await getDocument(loginCookie, Collection.session);
-    const user: AccountData = sessionData.accounts;
-
-    setAccountData(user);
   }
+  
 
   return accountData ? <Timetable accountData={accountData} /> : <Form telegramUser={telegramUser} setAccountData={setAccountData} />;
 }

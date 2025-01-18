@@ -66,4 +66,5 @@ export type AccountData = {
   ignore: string[],
   additional: string[],
   lang: "en" | "de",
+  chatID: number | null,
 }
