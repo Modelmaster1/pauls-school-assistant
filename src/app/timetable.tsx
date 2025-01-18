@@ -300,7 +300,7 @@ function Event({
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
         <div className="sm:font-semibold">
-          {data.generalData?.name ?? "test" ?? data.staticData.subject.toUpperCase()} (
+          {data.generalData?.name ?? data.staticData.subject.toUpperCase()} (
           {data.staticData.teacher})
         </div>
         <div className="">{data.staticData.room}</div>
