@@ -31,7 +31,7 @@ export function Form({
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
     });
-  });
+  }, []);
 
   async function finish() {
     const newAccountData: AccountData = {
@@ -131,6 +131,7 @@ function Start() {
           draggable={false}
           alt="hero image"
           className="max-h-[350px] object-contain"
+          loading="eager"
         />
       </div>
       <div className="text-xl font-semibold">

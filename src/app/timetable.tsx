@@ -11,24 +11,11 @@ import { getTimeDifferenceInMinutes } from "./timeFunctions";
 
 export default function Timetable({
   accountData,
+  currentSchedule,
 }: {
   accountData?: AccountData | null;
+  currentSchedule?: CurrentSchedule | null;
 }) {
-  const [currentSchedule, setCurrentSchedule] =
-    useState<CurrentSchedule | null>(null);
-
-  useEffect(() => {
-    start();
-  }, []);
-
-  async function start() {
-
-    if (!accountData) {
-      return;
-    }
-    
-    setCurrentSchedule(await createCurrentSchedule(accountData));
-  }
 
   return (
     <main className="min-h-full overflow-hidden p-5">

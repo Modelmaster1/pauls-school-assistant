@@ -24,12 +24,14 @@ export interface FullSchedule {
 }
 
 export type Notice = {
-  $createdAt: Date,
+    $createdAt: Date,
     affectedClass: string,
     date: Date,
-    subject: string,
+    subject: string | null,
     periods: number[],
     type: string,
+    room: string | null,
+    oldRoom: string | null,
     weekType: "a" | "b",
 }
 

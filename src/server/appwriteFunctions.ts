@@ -49,11 +49,12 @@ export const createDocument = async (
  * @param documentId - The document ID
  * @returns The fetched document
  */
-export const getDocument = async (documentId: string, collectionId: string): Promise<Models.Document> => {
+export const getDocument = async (documentId: string, collectionId: string): Promise<Models.Document | null> => {
   try {
     return await databases.getDocument(DATABASE_ID, collectionId, documentId);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.log(error.message);
+    return null;
   }
 };
 
