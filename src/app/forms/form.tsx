@@ -14,7 +14,13 @@ enum FormType {
   check = 4,
 }
 
-export function Form({ telegramUser, setAccountData }: { telegramUser: any, setAccountData: Dispatch<React.SetStateAction<AccountData | null>> }) {
+export function Form({
+  telegramUser,
+  setAccountData,
+}: {
+  telegramUser: any;
+  setAccountData: Dispatch<React.SetStateAction<AccountData | null>>;
+}) {
   const [currentStep, setCurrentStep] = useState<FormType>(FormType.start);
   const [year, setYear] = useState<string>("");
   const [ignore, setIgnore] = useState<string[]>([]);
@@ -37,7 +43,11 @@ export function Form({ telegramUser, setAccountData }: { telegramUser: any, setA
       lang: "en",
     };
 
-    const newUser = await createDocument(newAccountData, undefined, Collection.account);
+    const newUser = await createDocument(
+      newAccountData,
+      undefined,
+      Collection.account,
+    );
     setAccountData(newUser);
   }
 
@@ -92,7 +102,13 @@ export function Form({ telegramUser, setAccountData }: { telegramUser: any, setA
               color: "rgb(23 23 23 / 1)",
               width: "100%",
             }}
-            onClick={() => setCurrentStep((currentStep + 1) as FormType)}
+            onClick={() => {
+              if (currentStep == FormType.check) {
+                finish();
+              } else {
+                setCurrentStep((currentStep + 1) as FormType);
+              }
+            }}
           >
             {currentStep == FormType.start
               ? "Start"
@@ -133,7 +149,9 @@ function Start() {
 function Check({ telegramUser }: { telegramUser: any }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-xl font-semibold">Ready {telegramUser?.username ?? "Anonymous"}?</div>
+      <div className="text-xl font-semibold">
+        Ready {telegramUser?.username ?? "Anonymous"}?
+      </div>
       <div className="text-sm opacity-60">
         Almost done! Click the button below to finish the setup process.
       </div>
@@ -200,7 +218,7 @@ function Ignore({
           .filter((subject) => !ignore.includes(subject.abbreviation))
           .map((subject, i) => (
             <option key={subject.abbreviation + i} value={subject.abbreviation}>
-              {subject.name}
+              {subject.name} ({subject.abbreviation})
             </option>
           ))}
       </select>
@@ -250,7 +268,7 @@ function Additional({
           .filter((subject) => !additional.includes(subject.abbreviation))
           .map((subject, i) => (
             <option key={subject.abbreviation + i} value={subject.abbreviation}>
-              {subject.name}
+              {subject.name} ({subject.abbreviation})
             </option>
           ))}
       </select>
