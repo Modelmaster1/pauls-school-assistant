@@ -98,7 +98,7 @@ function DayLoading() {
     >
       <div className="flex w-full flex-col gap-0 rounded-2xl p-2 md:px-4 md:py-2">
         <div className="mb-4 flex w-full justify-center text-xs md:text-base">
-          <div className="h-[12px] min-w-[100px] rounded-lg bg-neutral-800"></div>
+          <div className="h-[12px] w-[80%x] rounded-lg bg-neutral-800"></div>
         </div>
 
         <div className="flex flex-col gap-16">

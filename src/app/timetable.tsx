@@ -1,13 +1,20 @@
 "use client";
 import { cva } from "class-variance-authority";
-import React, { CSSProperties, useEffect, useRef, useState } from "react";
-import { createCurrentSchedule } from "~/server/getSchedule";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AccountData,
   CurrentEntryData,
   CurrentSchedule,
+  Notice,
 } from "./models";
-import { getTimeDifferenceInMinutes } from "./timeFunctions";
+import {
+  calculatePeriodDuration,
+  getTimeDifferenceInMinutes,
+} from "./timeFunctions";
+
+function calculateMinToPx(min: number) {
+  return min * 0.009;
+}
 
 export default function Timetable({
   accountData,
@@ -16,7 +23,6 @@ export default function Timetable({
   accountData?: AccountData | null;
   currentSchedule?: CurrentSchedule | null;
 }) {
-
   return (
     <main className="min-h-full overflow-hidden p-5">
       <div className="mb-5 flex w-full flex-col items-center">
@@ -37,9 +43,10 @@ export default function Timetable({
               key={i}
               day={key}
               schedule={
-                currentSchedule[
-                  key as keyof typeof currentSchedule
-                ] as CurrentEntryData[]
+                currentSchedule[key as keyof typeof currentSchedule] as (
+                  | CurrentEntryData
+                  | Notice
+                )[]
               }
             />
           ))}
@@ -54,7 +61,7 @@ function DayColumn({
   lang,
 }: {
   day: string;
-  schedule: CurrentEntryData[];
+  schedule: (CurrentEntryData | Notice)[];
   lang?: string;
 }) {
   const [dayName, setDayName] = useState<string>(
@@ -78,12 +85,19 @@ function DayColumn({
               <FullEntry
                 data={entry}
                 isFirst={i === 0}
-                entriesInSameTimeFrame={schedule.filter(
-                  (item) =>
-                    entry.staticData.periods[0] ===
-                      item.staticData.periods[0] &&
-                    item.staticData.subject !== entry.staticData.subject,
-                )}
+                entriesInSameTimeFrame={
+                  schedule.filter((item) => {
+                    // Check if item is a CurrentEntryData (not a Notice)
+                    if (!("staticData" in item) || !("staticData" in entry))
+                      return false;
+
+                    return (
+                      entry.staticData.periods[0] ===
+                        item.staticData.periods[0] &&
+                      item.staticData.subject !== entry.staticData.subject
+                    );
+                  }) as CurrentEntryData[]
+                }
                 nextEntry={schedule[i + 1] ?? null}
               />
             </React.Fragment>
@@ -100,78 +114,50 @@ export function FullEntry({
   isFirst,
 }: {
   entriesInSameTimeFrame: CurrentEntryData[];
-  data: CurrentEntryData;
-  nextEntry: CurrentEntryData | null;
+  data: CurrentEntryData | Notice;
+  nextEntry: CurrentEntryData | Notice | null;
   isFirst: boolean;
 }) {
-  const itemRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState<number>(0);
 
-  const shouldBeHidden =
-    entriesInSameTimeFrame.length >= 1 &&
-    nextEntry?.staticData.periods[0] === data.staticData.periods[0];
+  const isNotice = !("staticData" in data);
+  const nextEntryPeriods = nextEntry
+    ? "staticData" in nextEntry
+      ? nextEntry.staticData.periods
+      : nextEntry.periods
+    : null;
+
+  const periods = isNotice ? data.periods : data.staticData.periods;
+
+  const shouldBeHidden = isNotice
+    ? false
+    : entriesInSameTimeFrame.length >= 1 &&
+      ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
+
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(
     getTimeDifferenceInMinutes(
-      data.staticData.periods[data.staticData.periods.length - 1] ?? null,
-      nextEntry?.staticData.periods[0] ?? null,
+      periods[periods.length - 1] ?? null,
+      (nextEntryPeriods && nextEntryPeriods[0]) ?? null,
       false,
     ),
   ); // for break
 
   const [bufferTime, setBufferTime] = useState<number | null>(
-    isFirst
-      ? getTimeDifferenceInMinutes(1, data.staticData.periods[0] ?? null, true)
-      : null,
+    isFirst ? getTimeDifferenceInMinutes(1, periods[0] ?? null, true) : null,
   );
-
-  const totalLength =
-    (shouldBeHidden ? 0 : data.staticData.periods.length * 45) +
-    (calculatedDuration ? calculatedDuration : 0) +
-    (bufferTime ? bufferTime : 0);
-
-  const dynamicHeight: number = width * (0.009 * totalLength);
-
-  useEffect(() => {
-
-    const element = itemRef.current;
-
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.offsetWidth);
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateWidth();
-    });
-
-    // Observe the element
-    resizeObserver.observe(element);
-
-    // Set the initial width
-    updateWidth();
-
-    return () => {
-      // Cleanup observer
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   return (
     <span
       className="flex flex-col gap-0"
-      style={{ height: dynamicHeight, width: "100%" }}
-      ref={itemRef}
+      style={{ width: "100%" }}
     >
-      {bufferTime && <Break totalLength={totalLength} duration={bufferTime} />}
+      {bufferTime && <Break duration={bufferTime} />}
       <Event
         otherEnrties={entriesInSameTimeFrame}
-        totalLength={totalLength}
         data={data}
         isHidden={shouldBeHidden}
       />
       {calculatedDuration && (
-        <Break totalLength={totalLength} duration={calculatedDuration} />
+        <Break duration={calculatedDuration} />
       )}
     </span>
   );
@@ -201,9 +187,10 @@ export const eventColorStyles = cva(
       },
       noticeType: {
         none: "",
+        special: "outline-dashed outline-[#666a6d]/80",
         cancelled: "cancelled",
         likelyCancelled: "likelyCancelled",
-      }
+      },
     },
     defaultVariants: {
       tint: "default",
@@ -238,21 +225,59 @@ const dayModel = {
 function Event({
   otherEnrties,
   data,
-  totalLength,
   isHidden,
 }: {
-  data: CurrentEntryData;
+  data: CurrentEntryData | Notice;
   otherEnrties: CurrentEntryData[];
-  totalLength: number;
   isHidden?: boolean;
 }) {
-  const calculatedHeight =
-    ((data.staticData.periods.length * 45) / totalLength) * 100 + "%";
+  const [width, setWidth] = useState<number>(0);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  const isNotice = !("staticData" in data);
+  const itemTint = isNotice
+    ? null
+    : data.dynamicData
+      ? "none"
+      : data.generalData?.tint;
+  const noticeTintType = isNotice ? "special" : data.dynamicData?.type;
+  const title = isNotice
+    ? data.descr
+    : (data.generalData?.name ?? data.staticData.subject.toUpperCase());
+  const periods = isNotice ? data.periods : data.staticData.periods;
+
+  const calculatedPeriodDuration = calculatePeriodDuration(periods) ?? 0
+  const dynamicHeight = width * calculateMinToPx(calculatedPeriodDuration)
+
+  useEffect(() => {
+    const element = itemRef.current;
+
+    if (!element) return;
+
+    const updateWidth = () => {
+      setWidth(element.offsetWidth);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    // Observe the element
+    resizeObserver.observe(element);
+
+    // Set the initial width
+    updateWidth();
+
+    return () => {
+      // Cleanup observer
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <div
       className={eventColorStyles({
-        tint: data.dynamicData ? "none" : data.generalData?.tint as keyof (
+        tint: itemTint as keyof (
           | "almostTransparent"
           | "white"
           | "default"
@@ -268,29 +293,31 @@ function Event({
           | undefined
         ),
 
-        noticeType: data.dynamicData?.type as keyof (
+        noticeType: noticeTintType as keyof (
           | "none"
           | "cancelled"
           | "likelyCancelled"
+          | "special"
           | null
           | undefined
         ),
       })}
       style={{
-        height: calculatedHeight,
+        height: dynamicHeight,
         width: "100%",
         display: isHidden == true ? "none" : "block",
       }}
+      ref={itemRef}
     >
       <div
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
-        <div className="sm:font-semibold">
-          {data.generalData?.name ?? data.staticData.subject.toUpperCase()} (
-          {data.staticData.teacher})
+        <div className="sm:font-semibold w-full">
+          {title} ({isNotice ? data.periods.join("-") : data.staticData.teacher}
+          )
         </div>
-        <div className="">{data.staticData.room}</div>
+        <div className="">{isNotice ? data.room : data.staticData.room}</div>
         <div>
           {otherEnrties.length >= 1
             ? "+" +
@@ -300,7 +327,9 @@ function Event({
               ")"
             : null}
         </div>
-        <div>{data.dynamicData?.type ?? null}</div>
+        <div>
+          {isNotice ? "special notice" : (data.dynamicData?.type ?? null)}
+        </div>
       </div>
     </div>
   );
@@ -308,15 +337,44 @@ function Event({
 
 function Break({
   duration,
-  totalLength,
 }: {
   duration: number;
-  totalLength: number;
 }) {
+  const [width, setWidth] = useState<number>(0);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  const dynamicHeight = width * calculateMinToPx(duration)
+
+  useEffect(() => {
+    const element = itemRef.current;
+
+    if (!element) return;
+
+    const updateWidth = () => {
+      setWidth(element.offsetWidth);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    // Observe the element
+    resizeObserver.observe(element);
+
+    // Set the initial width
+    updateWidth();
+
+    return () => {
+      // Cleanup observer
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <div
       className="flex items-center overflow-hidden rounded-xl text-xs font-light text-neutral-400/50 md:text-base"
-      style={{ height: (duration / totalLength) * 100 + "%", width: 100 + "%" }}
+      style={{height: dynamicHeight + "px", width: 100 + "%" }}
+      ref={itemRef}
     >
       <div
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"

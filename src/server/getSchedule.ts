@@ -75,9 +75,9 @@ async function getNotices(affectedClass: string, friday: Date) {
     $createdAt: new Date(notice.$createdAt),
   }));
 
-  return notices.filter((notice) =>
-    isWithinFiveDaysOfFriday(notice.date, friday),
-  ).sort((a, b) => b.$createdAt.getTime() - a.$createdAt.getTime());
+  return notices
+    .filter((notice) => isWithinFiveDaysOfFriday(notice.date, friday))
+    .sort((a, b) => b.$createdAt.getTime() - a.$createdAt.getTime());
 }
 
 function convertEntryToCurrentEntry(
@@ -86,7 +86,6 @@ function convertEntryToCurrentEntry(
   notice: Notice | null,
   lang: "en" | "de",
 ): CurrentEntryData {
-
   const result: CurrentEntryData = {
     staticData: entry,
     generalData: subjectInfo
@@ -112,14 +111,15 @@ function convertScheduleArray(
   var result: CurrentEntryData[] = [];
 
   const activeAdditionalSubjects = additionalSubjects.filter(
-    (subject) => subject.weekDay == weekday.s && !user.ignore.includes(subject.subject),
+    (subject) =>
+      subject.weekDay == weekday.s && !user.ignore.includes(subject.subject),
   );
 
-  const sortedSchedule = [...schedule, ...activeAdditionalSubjects].sort(
-    (a, b) => (a.periods[0] ?? 0) - (b.periods[0] ?? 0),
+  const otherNotices = notices.filter(
+    (notice) => notice.type === "unknown" && notice.date.getDay() == weekday.n,
   );
 
-  sortedSchedule.forEach((entry: ScheduleEntry) => {
+  [...schedule, ...activeAdditionalSubjects].forEach((entry: ScheduleEntry) => {
     if (!user.ignore.includes(entry.subject)) {
       const subjectInfo =
         subjectInfoBase.find(
@@ -143,7 +143,55 @@ function convertScheduleArray(
     }
   });
 
-  return result;
+  otherNotices.forEach((notice) => {
+    result = result.map(entry => {
+      const noticePeriods = notice.periods;
+      const entryPeriods = entry.staticData.periods;
+      
+      // Filter out any periods that fall within notice period range
+      const updatedPeriods = entryPeriods.filter(period => 
+        period < (noticePeriods[0] ?? 0) || 
+        period > (noticePeriods[1] ?? 0)
+      );
+      
+      // If periods changed, return updated entry
+      if (updatedPeriods.length !== entryPeriods.length) {
+        return {
+          ...entry,
+          staticData: {
+            ...entry.staticData,
+            periods: updatedPeriods
+          }
+        };
+      }
+      
+      return entry;
+    }).filter(entry => entry.staticData.periods.length > 0);
+  });  
+
+  const mixedResult = [
+    ...result,
+    ...otherNotices,
+  ].sort((a, b) => {
+    const aFirstPeriod =
+      "staticData" in a ? (a.staticData.periods[0] ?? 0) : (a.periods[0] ?? 0);
+    const bFirstPeriod =
+      "staticData" in b ? (b.staticData.periods[0] ?? 0) : (b.periods[0] ?? 0);
+
+    return aFirstPeriod - bFirstPeriod;
+  });
+
+  mixedResult.forEach((it) => {
+    if ("staticData" in it) {
+      console.log(
+        it.staticData.subject,
+        it.staticData.periods,
+        it.staticData.weekDay,
+      );
+    }
+  });
+
+  return mixedResult;
 }
 
 const weekDayModel: weekDayModel = {

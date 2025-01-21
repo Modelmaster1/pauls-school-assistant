@@ -1,3 +1,4 @@
+
 export default function getWeekDates() {
   const friday = getNextFriday();
   const previousMonday = new Date(friday);
@@ -40,7 +41,26 @@ const startTimeForPeriods = {
   8: "14:00",
   9: "14:45",
   10: "15:30",
+  11: "16:15",
+  12: "17:00",
+  13: "17:45",
 };
+
+export function calculatePeriodDuration(
+  periods: number[],
+) {
+  const firstPeriod = periods[0] ?? null
+  const lastPeriod = periods[periods.length - 1] ?? null;
+
+  if (periods.length === 1) {
+    console.log("calculatePeriodDuration: firstPeriod and no lastPeriod");
+    return 45; // the length of a period
+  }
+
+  const result = getTimeDifferenceInMinutes(firstPeriod, lastPeriod, true);
+
+  return result ? result + 45: result
+}
 
 export function getTimeDifferenceInMinutes(
   lastPeriod: number | null,
@@ -66,6 +86,13 @@ export function getTimeDifferenceInMinutes(
 
   if (debug) {
     console.log("getTimeDifferenceInMinutes: lastPeriod <= nextPeriod");
+  }
+
+  if (lastPeriod === nextPeriod) {
+    if (debug) {
+      console.log("getTimeDifferenceInMinutes: lastPeriod === nextPeriod");
+    }
+    return null;
   }
 
   const time1 =

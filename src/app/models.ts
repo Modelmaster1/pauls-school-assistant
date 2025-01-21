@@ -33,6 +33,7 @@ export type Notice = {
     room: string | null,
     oldRoom: string | null,
     weekType: "a" | "b",
+    descr: string | null,
 }
 
 export type SubjectInfo = {
@@ -48,11 +49,11 @@ export type CurrentSchedule = {
     mon: Date,
     fri: Date,
   }
-  mon: CurrentEntryData[]
-  tue: CurrentEntryData[];
-  wed: CurrentEntryData[];
-  thu: CurrentEntryData[];
-  fri: CurrentEntryData[];
+  mon: (CurrentEntryData | Notice)[];
+  tue: (CurrentEntryData | Notice)[];
+  wed: (CurrentEntryData | Notice)[];
+  thu: (CurrentEntryData | Notice)[];
+  fri: (CurrentEntryData | Notice)[];
 }
 
 export type CurrentEntryData = {
