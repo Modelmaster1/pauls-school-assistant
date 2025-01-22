@@ -181,16 +181,6 @@ function convertScheduleArray(
     return aFirstPeriod - bFirstPeriod;
   });
 
-  mixedResult.forEach((it) => {
-    if ("staticData" in it) {
-      console.log(
-        it.staticData.subject,
-        it.staticData.periods,
-        it.staticData.weekDay,
-      );
-    }
-  });
-
   return mixedResult;
 }
 

@@ -4,7 +4,7 @@ import { Collection, getDocument } from "~/server/appwriteFunctions";
 import { AccountData, CurrentSchedule } from "./models";
 import { useEffect, useRef, useState } from "react";
 import { fetchAccountData } from "~/server/getUser";
-import { Form } from "./forms/form";
+import { Form } from "./form";
 import { createCurrentSchedule } from "~/server/getSchedule";
 
 export default function HomePage({

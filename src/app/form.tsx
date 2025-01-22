@@ -1,7 +1,7 @@
 "use client";
 import { Dispatch, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { AccountData, SubjectInfo } from "../models";
+import { AccountData, SubjectInfo } from "./models";
 import { getSubjectInfo } from "~/server/getSchedule";
 import { X } from "lucide-react";
 import { Collection, createDocument } from "~/server/appwriteFunctions";
