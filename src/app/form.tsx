@@ -5,6 +5,7 @@ import { AccountData, SubjectInfo } from "./models";
 import { getSubjectInfo } from "~/server/getSchedule";
 import { X } from "lucide-react";
 import { Collection, createDocument } from "~/server/appwriteFunctions";
+import CodeAuth from "./codeAuth";
 
 enum FormType {
   start = 0,
@@ -26,6 +27,7 @@ export function Form({
   const [ignore, setIgnore] = useState<string[]>([]);
   const [additional, setAdditional] = useState<string[]>([]);
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
+  const [popUpIsOpen, setPopUpIsOpen] = useState<boolean>(false);
 
   useEffect(() => {
     getSubjectInfo().then((data) => {
@@ -84,12 +86,19 @@ export function Form({
     <main className="formBackground flex min-h-screen items-center justify-center overflow-hidden p-5">
       <div className="flex w-[500px] flex-col gap-9 rounded-3xl bg-neutral-900 p-10 drop-shadow-lg">
         {getStep()}
+        <CodeAuth
+          setAccountData={setAccountData}
+          popUpIsOpen={popUpIsOpen}
+          setPopUpIsOpen={setPopUpIsOpen}
+        />
         <div className="flex justify-end gap-3">
           {currentStep != FormType.start && (
             <Button
               className="rounded-full px-6"
               variant="ghost"
-              onClick={() => setCurrentStep((currentStep - 1) as FormType)}
+              onClick={() => {
+                setCurrentStep((currentStep - 1) as FormType);
+              }}
             >
               Back
             </Button>
@@ -103,6 +112,10 @@ export function Form({
               width: "100%",
             }}
             onClick={() => {
+              if (!telegramUser?.id) {
+                setPopUpIsOpen(true)
+                return
+              }
               if (currentStep == FormType.check) {
                 finish();
               } else {

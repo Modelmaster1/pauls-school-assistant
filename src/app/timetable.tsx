@@ -11,6 +11,10 @@ import {
   calculatePeriodDuration,
   getTimeDifferenceInMinutes,
 } from "./timeFunctions";
+import { LoadingScheduleScreen } from "./loadingScreens";
+import { Button } from "~/components/ui/button";
+import { MonitorSmartphone } from "lucide-react";
+import { createCodeLoginSession } from "~/server/handleCodeLogin";
 
 function calculateMinToPx(min: number) {
   return min * 0.009;
@@ -20,11 +24,22 @@ export default function Timetable({
   accountData,
   currentSchedule,
 }: {
-  accountData?: AccountData | null;
-  currentSchedule?: CurrentSchedule | null;
+  accountData: AccountData;
+  currentSchedule: CurrentSchedule | null;
 }) {
+  const [loginCode, setLoginCode] = useState<string>("");
+
   return (
     <main className="min-h-full overflow-hidden p-5">
+      <div className="absolute right-8 top-2">
+        <Button onClick={
+          async() => {
+            const code =await createCodeLoginSession(accountData.$id)
+            setLoginCode(code)
+            alert("Your login code is: " + code + " (This code will be deleted after 5 minutes)")
+          }
+        } variant="ghost" size="icon"><MonitorSmartphone /></Button>
+      </div>
       <div className="mb-5 flex w-full flex-col items-center">
         <div className="text-2xl font-bold">
           {accountData?.year ?? "loading"}{" "}
@@ -36,9 +51,9 @@ export default function Timetable({
         </div>
       </div>
 
-      <div className="flex min-h-full w-full justify-start gap-0 overflow-x-auto lg:justify-center">
-        {currentSchedule &&
-          Object.keys(dayModel).map((key, i) => (
+      {currentSchedule ? (
+        <div className="flex min-h-full w-full justify-start gap-0 overflow-x-auto lg:justify-center">
+          {Object.keys(dayModel).map((key, i) => (
             <DayColumn
               key={i}
               day={key}
@@ -50,7 +65,10 @@ export default function Timetable({
               }
             />
           ))}
-      </div>
+        </div>
+      ) : (
+        <LoadingScheduleScreen />
+      )}
     </main>
   );
 }
@@ -118,7 +136,6 @@ export function FullEntry({
   nextEntry: CurrentEntryData | Notice | null;
   isFirst: boolean;
 }) {
-
   const isNotice = !("staticData" in data);
   const nextEntryPeriods = nextEntry
     ? "staticData" in nextEntry
@@ -146,19 +163,14 @@ export function FullEntry({
   );
 
   return (
-    <span
-      className="flex flex-col gap-0"
-      style={{ width: "100%" }}
-    >
+    <span className="flex flex-col gap-0" style={{ width: "100%" }}>
       {bufferTime && <Break duration={bufferTime} />}
       <Event
         otherEnrties={entriesInSameTimeFrame}
         data={data}
         isHidden={shouldBeHidden}
       />
-      {calculatedDuration && (
-        <Break duration={calculatedDuration} />
-      )}
+      {calculatedDuration && <Break duration={calculatedDuration} />}
     </span>
   );
 }
@@ -246,8 +258,8 @@ function Event({
     : (data.generalData?.name ?? data.staticData.subject.toUpperCase());
   const periods = isNotice ? data.periods : data.staticData.periods;
 
-  const calculatedPeriodDuration = calculatePeriodDuration(periods) ?? 0
-  const dynamicHeight = width * calculateMinToPx(calculatedPeriodDuration)
+  const calculatedPeriodDuration = calculatePeriodDuration(periods) ?? 0;
+  const dynamicHeight = width * calculateMinToPx(calculatedPeriodDuration);
 
   useEffect(() => {
     const element = itemRef.current;
@@ -313,7 +325,7 @@ function Event({
         className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
-        <div className="sm:font-semibold w-full">
+        <div className="w-full sm:font-semibold">
           {title} ({isNotice ? data.periods.join("-") : data.staticData.teacher}
           )
         </div>
@@ -335,15 +347,11 @@ function Event({
   );
 }
 
-function Break({
-  duration,
-}: {
-  duration: number;
-}) {
+function Break({ duration }: { duration: number }) {
   const [width, setWidth] = useState<number>(0);
   const itemRef = useRef<HTMLDivElement>(null);
 
-  const dynamicHeight = width * calculateMinToPx(duration)
+  const dynamicHeight = width * calculateMinToPx(duration);
 
   useEffect(() => {
     const element = itemRef.current;
@@ -373,7 +381,7 @@ function Break({
   return (
     <div
       className="flex items-center overflow-hidden rounded-xl text-xs font-light text-neutral-400/50 md:text-base"
-      style={{height: dynamicHeight + "px", width: 100 + "%" }}
+      style={{ height: dynamicHeight + "px", width: 100 + "%" }}
       ref={itemRef}
     >
       <div

@@ -3,7 +3,7 @@ import HomePage from "./clientPage";
 
 export default async function Page() {
   const cookieStore = await cookies();
-  const loginCookie = cookieStore.get("login_session")?.value;
+  const loginCookie = cookieStore.get("pauls-school-assistant-session")?.value;
 
   return <HomePage loginCookie={loginCookie ?? null}/>
 }

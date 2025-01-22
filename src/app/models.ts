@@ -63,6 +63,7 @@ export type CurrentEntryData = {
 }
 
 export type AccountData = {
+  $id: string,
   username: string,
   year: string,
   telegramID: number | null,
