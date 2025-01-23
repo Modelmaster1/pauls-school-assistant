@@ -8,13 +8,31 @@ import { Form } from "./form";
 import { createCurrentSchedule } from "~/server/getSchedule";
 import { LoadingScreen } from "./loadingScreens";
 
+// Add type declaration for Telegram WebApp
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: {
+        ready: () => void;
+        initDataUnsafe?: {
+          user?: {
+            id: number;
+            username: string
+          };
+        };
+      };
+    };
+  }
+}
+
 export default function HomePage({
   loginCookie,
 }: {
   loginCookie: string | null;
 }) {
   const [accountData, setAccountData] = useState<AccountData | null>(null);
-  const [telegramUser, setTelegramUser] = useState<any>(null);
+  // Define proper type for telegramUser
+  const [telegramUser, setTelegramUser] = useState<{id: number} | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentSchedule, setCurrentSchedule] =
     useState<CurrentSchedule | null>(null);
@@ -37,10 +55,11 @@ export default function HomePage({
     }
 
     setLoading(true);
-    async () => {
+    // Fix: Immediately invoke the async function
+    (async () => {
       setCurrentSchedule(await createCurrentSchedule(accountData));
-    };
-    setLoading(false);
+      setLoading(false);
+    })();
   }, [accountData]);
 
   async function start(telegramID: number | null) {

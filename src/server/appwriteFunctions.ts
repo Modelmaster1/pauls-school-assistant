@@ -32,13 +32,14 @@ interface DocumentData {
  * @param documentId - The optional document ID (use "unique()" for a random ID)
  * @returns The created document
  */
-export const createDocument = async (
+export const createDocument = async <T extends DocumentData>(
   data: DocumentData,
   documentId: string = "unique()",
   collectionId: string
-): Promise<Models.Document> => {
+): Promise<T> => {
   try {
-    return await databases.createDocument(DATABASE_ID, collectionId, documentId, data);
+    const response = await databases.createDocument(DATABASE_ID, collectionId, documentId, data);
+    return response as unknown as T;
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -49,28 +50,27 @@ export const createDocument = async (
  * @param documentId - The document ID
  * @returns The fetched document
  */
-export const getDocument = async (documentId: string, collectionId: string): Promise<Models.Document | null> => {
+export const getDocument = async <T extends DocumentData>(
+  documentId: string, 
+  collectionId: string
+): Promise<T | null> => {
   try {
-    return await databases.getDocument(DATABASE_ID, collectionId, documentId);
+    const response = await databases.getDocument(DATABASE_ID, collectionId, documentId);
+    return response as unknown as T;
   } catch (error: any) {
     console.log(error.message);
     return null;
   }
 };
 
-/**
- * Update a document
- * @param documentId - The document ID
- * @param data - The data to update
- * @returns The updated document
- */
-export const updateDocument = async (
+export const updateDocument = async <T extends DocumentData>(
   documentId: string,
   data: DocumentData,
   collectionId: string
-): Promise<Models.Document> => {
+): Promise<T> => {
   try {
-    return await databases.updateDocument(DATABASE_ID, collectionId, documentId, data);
+    const response = await databases.updateDocument(DATABASE_ID, collectionId, documentId, data);
+    return response as unknown as T;
   } catch (error: any) {
     throw new Error(error.message);
   }

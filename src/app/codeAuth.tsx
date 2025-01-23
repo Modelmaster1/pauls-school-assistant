@@ -1,12 +1,11 @@
 "use client";
 import {
   Dispatch,
-  ElementType,
   SetStateAction,
   useEffect,
   useState,
 } from "react";
-import { REGEXP_ONLY_DIGITS, REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import {
   InputOTP,
   InputOTPGroup,
@@ -21,7 +20,6 @@ import {
   DialogDescription,
 } from "~/components/ui/dialog";
 import {
-  createCodeLoginSession,
   validateCodeLoginSession,
 } from "~/server/handleCodeLogin";
 import { AccountData } from "./models";

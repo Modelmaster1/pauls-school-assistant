@@ -36,7 +36,7 @@ export function Form({
   }, []);
 
   async function finish() {
-    const newAccountData: AccountData = {
+    const newAccountData = { // based on user data, but doesn't have all the properties
       username: telegramUser?.username ?? "Anonymous",
       year: year,
       telegramID: telegramUser?.id,
@@ -45,7 +45,7 @@ export function Form({
       lang: "en",
     };
 
-    const newUser = await createDocument(
+    const newUser = await createDocument<AccountData>(
       newAccountData,
       undefined,
       Collection.account,

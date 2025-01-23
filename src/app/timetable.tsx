@@ -32,13 +32,21 @@ export default function Timetable({
   return (
     <main className="min-h-full overflow-hidden p-5">
       <div className="absolute right-8 top-2">
-        <Button onClick={
-          async() => {
-            const code =await createCodeLoginSession(accountData.$id)
-            setLoginCode(code)
-            alert("Your login code is: " + code + " (This code will be deleted after 5 minutes)")
-          }
-        } variant="ghost" size="icon"><MonitorSmartphone /></Button>
+        <Button
+          onClick={async () => {
+            const code = await createCodeLoginSession(accountData.$id);
+            setLoginCode(code);
+            alert(
+              "Your login code is: " +
+                code +
+                " (This code will be deleted after 5 minutes)",
+            );
+          }}
+          variant="ghost"
+          size="icon"
+        >
+          <MonitorSmartphone />
+        </Button>
       </div>
       <div className="mb-5 flex w-full flex-col items-center">
         <div className="text-2xl font-bold">
@@ -105,16 +113,24 @@ function DayColumn({
                 isFirst={i === 0}
                 entriesInSameTimeFrame={
                   schedule.filter((item) => {
-                    // Check if item is a CurrentEntryData (not a Notice)
-                    if (!("staticData" in item) || !("staticData" in entry))
-                      return false;
+                    if (entry === item) return false;
 
-                    return (
-                      entry.staticData.periods[0] ===
-                        item.staticData.periods[0] &&
-                      item.staticData.subject !== entry.staticData.subject
-                    );
-                  }) as CurrentEntryData[]
+                    // if both are currententrydata
+                    if ("staticData" in item && "staticData" in entry) {
+                      return (
+                        entry.staticData.periods[0] ===
+                        item.staticData.periods[0]
+                      );
+                    }
+
+                    // if both are notices
+                    if ("periods" in item && "periods" in entry) {
+                      return entry.periods[0] === item.periods[0];
+                    }
+
+                    //if they are not the same type return false
+                    return false;
+                  }) as CurrentEntryData[] | Notice[]
                 }
                 nextEntry={schedule[i + 1] ?? null}
               />
@@ -131,7 +147,7 @@ export function FullEntry({
   nextEntry,
   isFirst,
 }: {
-  entriesInSameTimeFrame: CurrentEntryData[];
+  entriesInSameTimeFrame: CurrentEntryData[] | Notice[];
   data: CurrentEntryData | Notice;
   nextEntry: CurrentEntryData | Notice | null;
   isFirst: boolean;
@@ -146,7 +162,7 @@ export function FullEntry({
   const periods = isNotice ? data.periods : data.staticData.periods;
 
   const shouldBeHidden = isNotice
-    ? false
+    ? figureOutWetherExtraNoticeIsOutOfDate()
     : entriesInSameTimeFrame.length >= 1 &&
       ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
 
@@ -161,6 +177,15 @@ export function FullEntry({
   const [bufferTime, setBufferTime] = useState<number | null>(
     isFirst ? getTimeDifferenceInMinutes(1, periods[0] ?? null, true) : null,
   );
+
+  function figureOutWetherExtraNoticeIsOutOfDate() {
+
+    if (entriesInSameTimeFrame.length < 1) return false
+
+    const orderedEntries = ([...entriesInSameTimeFrame, data] as Notice[]).sort((a, b) => Number(b.$createdAt) - Number(a.$createdAt))
+
+    return !(orderedEntries[0] === data)
+  }
 
   return (
     <span className="flex flex-col gap-0" style={{ width: "100%" }}>
@@ -240,7 +265,7 @@ function Event({
   isHidden,
 }: {
   data: CurrentEntryData | Notice;
-  otherEnrties: CurrentEntryData[];
+  otherEnrties: CurrentEntryData[] | Notice[];
   isHidden?: boolean;
 }) {
   const [width, setWidth] = useState<number>(0);
@@ -260,6 +285,7 @@ function Event({
 
   const calculatedPeriodDuration = calculatePeriodDuration(periods) ?? 0;
   const dynamicHeight = width * calculateMinToPx(calculatedPeriodDuration);
+  const otherEnrtiesString = createConcurrentEventsString();
 
   useEffect(() => {
     const element = itemRef.current;
@@ -285,6 +311,25 @@ function Event({
       resizeObserver.disconnect();
     };
   }, []);
+
+  function createConcurrentEventsString() {
+    if (!otherEnrties[0]) return null;
+
+    const baseString = otherEnrties.length + "+";
+
+    if ("staticData" in otherEnrties[0]) {
+      // This is CurrentEntryData[]
+      // Handle CurrentEntryData specific logic
+      const concurrentEvents = otherEnrties as CurrentEntryData[];
+      const subjects = concurrentEvents
+        .map((entry) => entry.staticData.subject)
+        .join(", ");
+
+      return baseString + " " + subjects;
+    }
+
+    return baseString;
+  }
 
   return (
     <div
@@ -330,15 +375,7 @@ function Event({
           )
         </div>
         <div className="">{isNotice ? data.room : data.staticData.room}</div>
-        <div>
-          {otherEnrties.length >= 1
-            ? "+" +
-              otherEnrties.length +
-              " (" +
-              otherEnrties.map((item) => item.staticData.subject).join(", ") +
-              ")"
-            : null}
-        </div>
+        <div>{otherEnrtiesString}</div>
         <div>
           {isNotice ? "special notice" : (data.dynamicData?.type ?? null)}
         </div>

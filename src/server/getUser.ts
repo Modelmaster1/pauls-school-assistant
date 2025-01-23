@@ -9,23 +9,11 @@ export const fetchAccountData = async (
     const docs = (
       await databases.listDocuments(DATABASE_ID, Collection.account, [
         Query.equal("telegramID", telegramID),
+        Query.limit(1),
       ])
     ).documents;
 
-    if (docs[0]) {
-      const itemData: AccountData = {
-        username: docs[0].username,
-        ignore: docs[0].ignore,
-        additional: docs[0].additional,
-        year: docs[0].year,
-        telegramID: docs[0].telegramID,
-        lang: docs[0].lang,
-      };
-
-      return itemData;
-    }
-
-    return null;
+    return docs[0];
   } catch (error: any) {
     throw new Error(error.message);
   }
