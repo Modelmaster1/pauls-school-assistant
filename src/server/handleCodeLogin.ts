@@ -16,7 +16,7 @@ export async function createCodeLoginSession(currentUserID: string) {
   const data = {
     accounts: currentUserID,
     tempCode: code,
-    expirationDate: new Date(Date.now() + 1000 * 60 * 5).toISOString(), // UTC+1, 5 mins expiry
+    expirationDate: new Date(Date.now() + 1000 * 60 * 5 + (1000 * 60 * 60)).toISOString(), // UTC+1, 5 mins expiry
   };
 
   await createDocument(data, ID.unique(), Collection.session);
@@ -26,7 +26,6 @@ export async function createCodeLoginSession(currentUserID: string) {
 
 export async function validateCodeLoginSession(code: string) {
   const currentDate = new Date();
-  console.log(currentDate);
   const sessions = await listDocuments(
     [Query.equal("tempCode", code)],
     Collection.session,
