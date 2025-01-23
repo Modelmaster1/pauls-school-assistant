@@ -97,7 +97,7 @@ export default function HomePage({
   return loading ? (
     <LoadingScreen/>
   ) : accountData ? (
-    <Timetable accountData={accountData} currentSchedule={currentSchedule} />
+    <Timetable accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} />
   ) : (
     <Form telegramUser={telegramUser} setAccountData={setAccountData} />
   );

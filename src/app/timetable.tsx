@@ -1,6 +1,6 @@
 "use client";
 import { cva } from "class-variance-authority";
-import React, { useEffect, useRef, useState } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
   AccountData,
   CurrentEntryData,
@@ -13,8 +13,9 @@ import {
 } from "./timeFunctions";
 import { LoadingScheduleScreen } from "./loadingScreens";
 import { Button } from "~/components/ui/button";
-import { MonitorSmartphone } from "lucide-react";
+import { MonitorSmartphone, Settings } from "lucide-react";
 import { createCodeLoginSession } from "~/server/handleCodeLogin";
+import AccountEditDrawer from "./accountEditDrawer";
 
 function calculateMinToPx(min: number) {
   return min * 0.009;
@@ -23,23 +24,34 @@ function calculateMinToPx(min: number) {
 export default function Timetable({
   accountData,
   currentSchedule,
+  setAccountData
 }: {
   accountData: AccountData;
   currentSchedule: CurrentSchedule | null;
+  setAccountData: Dispatch<SetStateAction<AccountData | null>>;
 }) {
   const [loginCode, setLoginCode] = useState<string>("");
 
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+
   return (
     <main className="min-h-full overflow-hidden p-5">
-      <div className="absolute right-8 top-2">
+      <div className="absolute right-8 top-2 flex gap-2">
+        <Button
+          onClick={() => setIsEditDrawerOpen(true)}
+          variant="ghost"
+          size="icon"
+        >
+          <Settings />
+        </Button>
         <Button
           onClick={async () => {
             const code = await createCodeLoginSession(accountData.$id);
             setLoginCode(code);
             alert(
               "Your login code is: " +
-                code +
-                " (This code will be deleted after 5 minutes)",
+              code +
+              " (This code will be deleted after 5 minutes)",
             );
           }}
           variant="ghost"
@@ -48,6 +60,12 @@ export default function Timetable({
           <MonitorSmartphone />
         </Button>
       </div>
+      <AccountEditDrawer
+        accountData={accountData}
+        setAccountData={setAccountData}
+        isOpen={isEditDrawerOpen}
+        setIsOpen={setIsEditDrawerOpen}
+      />
       <div className="mb-5 flex w-full flex-col items-center">
         <div className="text-2xl font-bold">
           {accountData?.year ?? "loading"}{" "}
@@ -164,7 +182,7 @@ export function FullEntry({
   const shouldBeHidden = isNotice
     ? figureOutWetherExtraNoticeIsOutOfDate()
     : entriesInSameTimeFrame.length >= 1 &&
-      ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
+    ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
 
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(
     getTimeDifferenceInMinutes(
