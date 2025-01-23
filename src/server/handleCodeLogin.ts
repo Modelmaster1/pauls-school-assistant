@@ -16,7 +16,7 @@ export async function createCodeLoginSession(currentUserID: string) {
   const data = {
     accounts: currentUserID,
     tempCode: code,
-    expirationDate: new Date(Date.now() + 1000 * 60 * 5 + (1000 * 60 * 60)).toISOString(), // UTC+1, 5 mins expiry
+    expirationDate: new Date(Date.now() + 1000 * 60 * 5 + (1000 * 60 * 60 * 1)).toISOString(), // UTC+1, 5 mins expiry
   };
 
   await createDocument(data, ID.unique(), Collection.session);
