@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { TelegramUser } from "./models";
 
 export default function TelegramLoginButton({
@@ -8,14 +8,11 @@ export default function TelegramLoginButton({
 }: {
   setTelegramUser: React.Dispatch<React.SetStateAction<TelegramUser | null>>;
 }) {
-
-  useEffect(() => {
-    // Define the callback function that Telegram will call
+  const initializeTelegramAuth = useCallback(() => {
     window.onTelegramAuth = (user: TelegramUser) => {
       setTelegramUser(user);
     };
 
-    // Create and inject the Telegram script
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
@@ -25,12 +22,25 @@ export default function TelegramLoginButton({
     script.setAttribute("data-request-access", "write");
     document.body.appendChild(script);
 
-    // Cleanup function
-    return () => {
+    return script;
+  }, [setTelegramUser]);
+
+  const handleClick = () => {
+    const script = initializeTelegramAuth();
+    const cleanup = () => {
       document.body.removeChild(script);
       delete window.onTelegramAuth;
+      window.removeEventListener('message', cleanup);
     };
-  }, []);
+    window.addEventListener('message', cleanup);
+  };
 
-  return <div id="telegram-login-widget" className="relative"></div>;
+  return (
+    <button 
+      onClick={handleClick}
+      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+    >
+      Login with Telegram
+    </button>
+  );
 }
