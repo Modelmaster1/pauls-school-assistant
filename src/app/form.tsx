@@ -13,7 +13,6 @@ import {
 } from "~/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { validateCodeLoginSession } from "~/server/handleCodeLogin";
-import TelegramLoginButton from "./telegramAuthButton";
 
 enum FormType {
   start = 0,
@@ -55,7 +54,13 @@ export function Form({
     script.setAttribute("data-size", "large");
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
-    document.body.appendChild(script);
+    script.setAttribute("data-auth-url", window.location.href);
+    
+    const container = document.getElementById("telegram-login-widget");
+    if (container) {
+      container.innerHTML = ''; // Clear any existing content
+      container.appendChild(script);
+    }
 
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
@@ -63,7 +68,9 @@ export function Form({
 
     // Cleanup function
     return () => {
-      document.body.removeChild(script);
+      if (container) {
+        container.innerHTML = '';
+      }
       delete window.onTelegramAuth;
     };
   }, []);
