@@ -8,7 +8,6 @@ export default function TelegramLoginButton({
 }: {
   setTelegramUser: React.Dispatch<React.SetStateAction<TelegramUser | null>>;
 }) {
-
   useEffect(() => {
     // Define the callback function that Telegram will call
     window.onTelegramAuth = (user: TelegramUser) => {
@@ -33,9 +32,13 @@ export default function TelegramLoginButton({
   }, []);
 
   return (
-    <div 
-      id="telegram-login-widget" 
-      className="relative flex justify-center items-center w-full"
-    ></div>
+    <script
+      src="https://telegram.org/js/telegram-widget.js?22"
+      async
+      data-telegram-login="PaulsAISchoolbot"
+      data-size="large"
+      data-onauth="onTelegramAuth(user)"
+      data-request-access="write"
+    ></script>
   );
 }
