@@ -6,7 +6,11 @@ import { getSubjectInfo } from "~/server/getSchedule";
 import { X } from "lucide-react";
 import { Collection, createDocument } from "~/server/appwriteFunctions";
 import { Card, CardContent } from "~/components/ui/card";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "~/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "~/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { validateCodeLoginSession } from "~/server/handleCodeLogin";
 import TelegramLoginButton from "./telegramAuthButton";
@@ -39,13 +43,19 @@ export function Form({
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
 
   useEffect(() => {
+    
+    window.onTelegramAuth = (user: TelegramUser) => {
+      setTelegramUser(user);
+    };
+
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
     });
   }, []);
 
   async function finish() {
-    const newAccountData = { // based on user data, but doesn't have all the properties
+    const newAccountData = {
+      // based on user data, but doesn't have all the properties
       username: telegramUser?.username ?? "Anonymous",
       year: year,
       telegramID: telegramUser?.id,
@@ -90,7 +100,7 @@ export function Form({
         return <Check telegramUser={telegramUser} />;
 
       case FormType.loginCode:
-        return <LoginCodeAuth setAccountData={setAccountData} />
+        return <LoginCodeAuth setAccountData={setAccountData} />;
       default:
         return <div>test</div>;
     }
@@ -103,7 +113,14 @@ export function Form({
           <div className="flex w-[500px] flex-col gap-9">
             {getStep()}
 
-            <TelegramLoginButton setTelegramUser={setTelegramUser} />
+            <script
+              src="https://telegram.org/js/telegram-widget.js?22"
+              async
+              data-telegram-login="PaulsAISchoolbot"
+              data-size="large"
+              data-onauth="onTelegramAuth(user)"
+              data-request-access="write"
+            ></script>
             <div className="flex justify-end gap-3">
               {currentStep != FormType.start && (
                 <Button
@@ -111,8 +128,8 @@ export function Form({
                   variant="ghost"
                   onClick={() => {
                     if (currentStep == FormType.loginCode) {
-                      setCurrentStep(FormType.start)
-                      return
+                      setCurrentStep(FormType.start);
+                      return;
                     }
                     setCurrentStep((currentStep - 1) as FormType);
                   }}
@@ -120,7 +137,7 @@ export function Form({
                   Back
                 </Button>
               )}
-              {(currentStep != FormType.loginCode) && (
+              {currentStep != FormType.loginCode && (
                 <Button
                   variant="default"
                   style={{
@@ -128,8 +145,8 @@ export function Form({
                   }}
                   onClick={() => {
                     if (!telegramUser?.id) {
-                      setCurrentStep(FormType.loginCode)
-                      return
+                      setCurrentStep(FormType.loginCode);
+                      return;
                     }
                     if (currentStep == FormType.check) {
                       finish();
@@ -144,20 +161,19 @@ export function Form({
                       ? "Finish"
                       : "Next"}
                 </Button>
-              )
-              }
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
-    </main >
+    </main>
   );
 }
 
 function Start() {
   return (
     <div className="flex flex-col gap-2">
-      <div className="mb-5 flex w-full justify-center bg-neutral-900 p-3 rounded-md">
+      <div className="mb-5 flex w-full justify-center rounded-md bg-neutral-900 p-3">
         <img
           src="https://ym04dawt7k.ufs.sh/f/74AXHxVYxS0EyyY9EorJdvEZPit5FAMw2OrI1Ru7bYDqjGVS"
           draggable={false}
@@ -235,7 +251,10 @@ function Ignore({
               key={s + i}
               className="flex items-center gap-1 rounded-full bg-neutral-800 px-3 py-1 text-sm"
             >
-              {subjectInfoData.find((subject) => subject.abbreviation === s)?.name}
+              {
+                subjectInfoData.find((subject) => subject.abbreviation === s)
+                  ?.name
+              }
               <button onClick={() => setIgnore(ignore.filter((i) => i !== s))}>
                 <X size={15} />
               </button>
@@ -244,14 +263,19 @@ function Ignore({
         </div>
         <select
           className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:ring-neutral-300"
-          onChange={(e) => e.target.value && setIgnore([...ignore, e.target.value])}
+          onChange={(e) =>
+            e.target.value && setIgnore([...ignore, e.target.value])
+          }
           value=""
         >
           <option value="">Add ignored subject</option>
           {subjectInfoData
             .filter((subject) => !ignore.includes(subject.abbreviation))
             .map((subject, i) => (
-              <option key={subject.abbreviation + i} value={subject.abbreviation}>
+              <option
+                key={subject.abbreviation + i}
+                value={subject.abbreviation}
+              >
                 {subject.name} ({subject.abbreviation})
               </option>
             ))}
@@ -270,7 +294,9 @@ function Language({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-xl font-semibold">Choose your preferred language</div>
+      <div className="text-xl font-semibold">
+        Choose your preferred language
+      </div>
       <div className="flex flex-col gap-2">
         <select
           value={lang}
@@ -307,8 +333,13 @@ function Additional({
               key={s + i}
               className="flex items-center gap-1 rounded-full bg-neutral-800 px-3 py-1 text-sm"
             >
-              {subjectInfoData.find((subject) => subject.abbreviation === s)?.name}
-              <button onClick={() => setAdditional(additional.filter((i) => i !== s))}>
+              {
+                subjectInfoData.find((subject) => subject.abbreviation === s)
+                  ?.name
+              }
+              <button
+                onClick={() => setAdditional(additional.filter((i) => i !== s))}
+              >
                 <X size={15} />
               </button>
             </div>
@@ -316,14 +347,19 @@ function Additional({
         </div>
         <select
           className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:ring-neutral-300"
-          onChange={(e) => e.target.value && setAdditional([...additional, e.target.value])}
+          onChange={(e) =>
+            e.target.value && setAdditional([...additional, e.target.value])
+          }
           value=""
         >
           <option value="">Add additional subject</option>
           {subjectInfoData
             .filter((subject) => !additional.includes(subject.abbreviation))
             .map((subject, i) => (
-              <option key={subject.abbreviation + i} value={subject.abbreviation}>
+              <option
+                key={subject.abbreviation + i}
+                value={subject.abbreviation}
+              >
                 {subject.name} ({subject.abbreviation})
               </option>
             ))}
@@ -333,13 +369,11 @@ function Additional({
   );
 }
 
-
 function LoginCodeAuth({
-  setAccountData
+  setAccountData,
 }: {
   setAccountData: Dispatch<React.SetStateAction<AccountData | null>>;
 }) {
-
   const [inputString, setInputString] = useState<string>("");
 
   useEffect(() => {
