@@ -43,14 +43,29 @@ export function Form({
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
 
   useEffect(() => {
-    
+
     window.onTelegramAuth = (user: TelegramUser) => {
       setTelegramUser(user);
     };
 
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute("data-telegram-login", "PaulsAISchoolbot");
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    document.body.appendChild(script);
+
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
     });
+
+    // Cleanup function
+    return () => {
+      document.body.removeChild(script);
+      delete window.onTelegramAuth;
+    };
   }, []);
 
   async function finish() {
@@ -113,14 +128,8 @@ export function Form({
           <div className="flex w-[500px] flex-col gap-9">
             {getStep()}
 
-            <script
-              src="https://telegram.org/js/telegram-widget.js?22"
-              async
-              data-telegram-login="PaulsAISchoolbot"
-              data-size="large"
-              data-onauth="onTelegramAuth(user)"
-              data-request-access="write"
-            ></script>
+            <div id="telegram-login-widget"></div>
+
             <div className="flex justify-end gap-3">
               {currentStep != FormType.start && (
                 <Button
