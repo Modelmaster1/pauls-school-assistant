@@ -1,0 +1,10 @@
+[lcl-host]
+realm-apid = 'localhost'
+
+[org]
+apid = 'modelmaster1'
+
+[service]
+apid = 'pauls-school-assistant'
+category = 'javascript'
+cert-style = 'acme'
