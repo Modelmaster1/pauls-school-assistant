@@ -30,7 +30,6 @@ export default function Timetable({
   currentSchedule: CurrentSchedule | null;
   setAccountData: Dispatch<SetStateAction<AccountData | null>>;
 }) {
-  const [loginCode, setLoginCode] = useState<string>("");
 
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
 
@@ -43,21 +42,6 @@ export default function Timetable({
           size="icon"
         >
           <Settings />
-        </Button>
-        <Button
-          onClick={async () => {
-            const code = await createCodeLoginSession(accountData.$id);
-            setLoginCode(code);
-            alert(
-              "Your login code is: " +
-              code +
-              " (This code will be deleted after 5 minutes)",
-            );
-          }}
-          variant="ghost"
-          size="icon"
-        >
-          <MonitorSmartphone />
         </Button>
       </div>
       <AccountEditDrawer

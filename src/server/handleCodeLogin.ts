@@ -65,6 +65,17 @@ export async function validateCodeLoginSession(code: string) {
   return account;
 }
 
+export async function handleLogout() {
+  "use server";
+  const cookieStore = await cookies();
+  cookieStore.set("pauls-school-assistant-session", "", {
+    path: "/",
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  return null;
+}
+
 function generateRandomString(length: number): string {
   const chars = "0123456789";
   let result = "";
