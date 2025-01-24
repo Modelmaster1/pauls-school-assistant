@@ -1,7 +1,7 @@
 "use client";
 import { Dispatch, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { AccountData, SubjectInfo } from "./models";
+import { AccountData, SubjectInfo, TelegramUser } from "./models";
 import { getSubjectInfo } from "~/server/getSchedule";
 import { X } from "lucide-react";
 import { Collection, createDocument } from "~/server/appwriteFunctions";
@@ -9,6 +9,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "~/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { validateCodeLoginSession } from "~/server/handleCodeLogin";
+import TelegramLoginButton from "./telegramAuthButton";
 
 enum FormType {
   start = 0,
@@ -23,9 +24,11 @@ enum FormType {
 
 export function Form({
   telegramUser,
+  setTelegramUser,
   setAccountData,
 }: {
-  telegramUser: any;
+  telegramUser: TelegramUser | null;
+  setTelegramUser: Dispatch<React.SetStateAction<TelegramUser | null>>;
   setAccountData: Dispatch<React.SetStateAction<AccountData | null>>;
 }) {
   const [currentStep, setCurrentStep] = useState<FormType>(FormType.start);
@@ -99,6 +102,8 @@ export function Form({
         <CardContent className="pt-5">
           <div className="flex w-[500px] flex-col gap-9">
             {getStep()}
+
+            <TelegramLoginButton setTelegramUser={setTelegramUser} />
             <div className="flex justify-end gap-3">
               {currentStep != FormType.start && (
                 <Button

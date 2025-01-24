@@ -1,7 +1,7 @@
 "use client";
 import Timetable from "./timetable";
 import { Collection, getDocument } from "~/server/appwriteFunctions";
-import { AccountData, CurrentSchedule } from "./models";
+import { AccountData, CurrentSchedule, TelegramUser } from "./models";
 import { useEffect, useRef, useState } from "react";
 import { fetchAccountData } from "~/server/getUser";
 import { Form } from "./form";
@@ -15,13 +15,11 @@ declare global {
       WebApp: {
         ready: () => void;
         initDataUnsafe?: {
-          user?: {
-            id: number;
-            username: string
-          };
+          user?: TelegramUser;
         };
       };
     };
+    onTelegramAuth?: (user: TelegramUser) => void;
   }
 }
 
@@ -99,6 +97,6 @@ export default function HomePage({
   ) : accountData ? (
     <Timetable accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} />
   ) : (
-    <Form telegramUser={telegramUser} setAccountData={setAccountData} />
+    <Form telegramUser={telegramUser} setTelegramUser={setTelegramUser} setAccountData={setAccountData} />
   );
 }

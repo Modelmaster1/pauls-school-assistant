@@ -72,3 +72,8 @@ export type AccountData = {
   lang: "en" | "de",
   chatID: number | null,
 }
+
+export interface TelegramUser {
+  id: number;
+  username?: string;
+}
