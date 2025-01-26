@@ -45,6 +45,7 @@ export function Form({
   useEffect(() => {
     window.onTelegramAuth = (user: TelegramUser) => {
       setTelegramUser(user);
+      setCurrentStep(FormType.Year);
     };
 
     const script = document.createElement("script");
