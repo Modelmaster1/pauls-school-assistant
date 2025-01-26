@@ -18,3 +18,35 @@ export const fetchAccountData = async (
     throw new Error(error.message);
   }
 };
+
+export async function sendWelcomeMessage(id: number) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const method = 'sendMessage';
+
+  const text = `Welcome to <b>Paul's School Assistant!</b> 👋. \n You're all set!`
+  
+  const payload: any = {
+    chat_id: id,
+    parse_mode: 'HTML',
+    text: text,
+  };
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      console.log('Message sent successfully!');
+    } else {
+      const errorText = await response.text();
+      console.error(`Failed to send message: ${errorText}`);
+    }
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+}

@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { validateCodeLoginSession } from "~/server/handleCodeLogin";
+import { sendWelcomeMessage } from "~/server/getUser";
 
 enum FormType {
   start = 0,
@@ -42,7 +43,6 @@ export function Form({
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
 
   useEffect(() => {
-
     window.onTelegramAuth = (user: TelegramUser) => {
       setTelegramUser(user);
     };
@@ -55,10 +55,10 @@ export function Form({
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
     script.setAttribute("data-auth-url", window.location.href);
-    
+
     const container = document.getElementById("telegram-login-widget");
     if (container) {
-      container.innerHTML = ''; // Clear any existing content
+      container.innerHTML = ""; // Clear any existing content
       container.appendChild(script);
     }
 
@@ -69,7 +69,7 @@ export function Form({
     // Cleanup function
     return () => {
       if (container) {
-        container.innerHTML = '';
+        container.innerHTML = "";
       }
       delete window.onTelegramAuth;
     };
@@ -92,6 +92,10 @@ export function Form({
       Collection.account,
     );
     setAccountData(newUser);
+
+    if (newAccountData && newAccountData.telegramID) {
+      sendWelcomeMessage(newAccountData.telegramID);
+    }
   }
 
   function getStep() {
@@ -135,49 +139,60 @@ export function Form({
           <div className="flex w-[500px] flex-col gap-9">
             {getStep()}
 
-            <div id="telegram-login-widget"></div>
+            <div className="flex flex-col gap-4">
+              {!telegramUser && currentStep == FormType.start && (
+                <div className="flex flex-col gap-4">
+                  <div id="telegram-login-widget"></div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-[2px] w-full bg-neutral-800"></div>
+                    <div className="text-neutral-600 text-xs min-w-fit">Already logged in on another device?</div>
+                    <div className="h-[2px] w-full bg-neutral-800"></div>
+                  </div>
+                </div>
+              )}
 
-            <div className="flex justify-end gap-3">
-              {currentStep != FormType.start && (
-                <Button
-                  className="px-6"
-                  variant="ghost"
-                  onClick={() => {
-                    if (currentStep == FormType.loginCode) {
-                      setCurrentStep(FormType.start);
-                      return;
-                    }
-                    setCurrentStep((currentStep - 1) as FormType);
-                  }}
-                >
-                  Back
-                </Button>
-              )}
-              {currentStep != FormType.loginCode && (
-                <Button
-                  variant="default"
-                  style={{
-                    width: "100%",
-                  }}
-                  onClick={() => {
-                    if (!telegramUser?.id) {
-                      setCurrentStep(FormType.loginCode);
-                      return;
-                    }
-                    if (currentStep == FormType.check) {
-                      finish();
-                    } else {
-                      setCurrentStep((currentStep + 1) as FormType);
-                    }
-                  }}
-                >
-                  {currentStep == FormType.start
-                    ? "Start"
-                    : currentStep == FormType.check
-                      ? "Finish"
-                      : "Next"}
-                </Button>
-              )}
+              <div className="flex justify-end gap-3">
+                {currentStep != FormType.start && (
+                  <Button
+                    className="px-6"
+                    variant="ghost"
+                    onClick={() => {
+                      if (currentStep == FormType.loginCode) {
+                        setCurrentStep(FormType.start);
+                        return;
+                      }
+                      setCurrentStep((currentStep - 1) as FormType);
+                    }}
+                  >
+                    Back
+                  </Button>
+                )}
+                {currentStep != FormType.loginCode && (
+                  <Button
+                    variant={currentStep == FormType.start && !telegramUser ? "secondary" : "default"}
+                    style={{
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      if (!telegramUser?.id) {
+                        setCurrentStep(FormType.loginCode);
+                        return;
+                      }
+                      if (currentStep == FormType.check) {
+                        finish();
+                      } else {
+                        setCurrentStep((currentStep + 1) as FormType);
+                      }
+                    }}
+                  >
+                    {currentStep == FormType.start
+                      ? telegramUser ? "Start" : "Login with Code"
+                      : currentStep == FormType.check
+                        ? "Finish"
+                        : "Next"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -391,6 +406,7 @@ function LoginCodeAuth({
   setAccountData: Dispatch<React.SetStateAction<AccountData | null>>;
 }) {
   const [inputString, setInputString] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     if (inputString.length >= 6) {
@@ -403,22 +419,38 @@ function LoginCodeAuth({
     if (account) {
       setAccountData(account);
       setInputString("");
+      setError("");
     } else {
       setInputString("");
-      alert("failed");
+      setError("Invalid code. Please try again.");
     }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-xl font-semibold">Login with code</div>
-      <div className="flex flex-col gap-2">
+      <div className="text-xl font-semibold">🔑 Login with Code</div>
+      <div className="text-sm opacity-60">
+        To get your login code:
+        <ol className="mt-2 list-decimal pl-5 space-y-1">
+          <li>Open the app on your other device</li>
+          <li>Click the ⚙️ Settings button in the top right</li>
+          <li>Press "Login on a new device via code"</li>
+          <li>Enter the 6-digit code below</li>
+        </ol>
+      </div>
+      <div className="flex flex-col gap-2 mt-2">
+        <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+          Enter your 6-digit code
+        </div>
         <InputOTP
           maxLength={6}
           pattern={REGEXP_ONLY_DIGITS}
           disabled={inputString.length >= 6}
           value={inputString}
-          onChange={(e) => setInputString(e)}
+          onChange={(e) => {
+            setInputString(e);
+            setError("");
+          }}
         >
           <InputOTPGroup>
             <InputOTPSlot index={0} />
@@ -429,6 +461,11 @@ function LoginCodeAuth({
             <InputOTPSlot index={5} />
           </InputOTPGroup>
         </InputOTP>
+        {error && (
+          <div className="text-sm text-red-500 mt-2 animate-in fade-in slide-in-from-top-1">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );
