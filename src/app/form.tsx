@@ -12,8 +12,8 @@ import {
   InputOTPSlot,
 } from "~/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
-import { validateCodeLoginSession } from "~/server/handleCodeLogin";
-import { sendWelcomeMessage } from "~/server/getUser";
+import { createASession, validateCodeLoginSession } from "~/server/handleCodeLogin";
+import { fetchAccountData, sendWelcomeMessage } from "~/server/getUser";
 
 enum FormType {
   start = 0,
@@ -26,6 +26,34 @@ enum FormType {
   loginCode,
 }
 
+// Add validation functions
+function validateYear(year: string): boolean {
+  // Allow format: number + optional letter (e.g., "10c", "11", "Q1")
+  const yearPattern = /^(Q[1-2]|[5-9]|1[0-3])[a-zA-Z]?$/;
+  return yearPattern.test(year);
+}
+
+function validateLanguage(lang: "en" | "de"): boolean {
+  return ["en", "de"].includes(lang);
+}
+
+function createTelegramScript() {
+  const script = document.createElement("script");
+  script.src = "https://telegram.org/js/telegram-widget.js?22";
+  script.async = true;
+  script.setAttribute("data-telegram-login", "PaulsAISchoolbot");
+  script.setAttribute("data-size", "large");
+  script.setAttribute("data-onauth", "onTelegramAuth(user)");
+  script.setAttribute("data-request-access", "write");
+  script.setAttribute("data-auth-url", window.location.href);
+
+  const container = document.getElementById("telegram-login-widget");
+  if (container) {
+    container.innerHTML = ""; // Clear any existing content
+    container.appendChild(script);
+  }
+}
+
 export function Form({
   telegramUser,
   setTelegramUser,
@@ -35,40 +63,111 @@ export function Form({
   setTelegramUser: Dispatch<React.SetStateAction<TelegramUser | null>>;
   setAccountData: Dispatch<React.SetStateAction<AccountData | null>>;
 }) {
-  const [currentStep, setCurrentStep] = useState<FormType>(FormType.start);
-  const [year, setYear] = useState<string>("");
-  const [lang, setLang] = useState<"en" | "de">("en");
-  const [ignore, setIgnore] = useState<string[]>([]);
-  const [additional, setAdditional] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState<FormType>(() => {
+    if (typeof window === 'undefined') return FormType.start;
+    const saved = localStorage.getItem('formStep');
+    return saved ? parseInt(saved) : FormType.start;
+  });
+  const [year, setYear] = useState<string>(() => {
+    if (typeof window === 'undefined') return "";
+    return localStorage.getItem('formYear') || "";
+  });
+  const [lang, setLang] = useState<"en" | "de">(() => {
+    if (typeof window === 'undefined') return "en";
+    return (localStorage.getItem('formLang') as "en" | "de") || "en";
+  });
+  const [ignore, setIgnore] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('formIgnore');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [additional, setAdditional] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('formAdditional');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save form state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('formStep', currentStep.toString());
+    localStorage.setItem('formYear', year);
+    localStorage.setItem('formLang', lang);
+    localStorage.setItem('formIgnore', JSON.stringify(ignore));
+    localStorage.setItem('formAdditional', JSON.stringify(additional));
+  }, [currentStep, year, lang, ignore, additional]);
+
+  // Clear localStorage when form is completed
+  const clearFormStorage = () => {
+    localStorage.removeItem('formStep');
+    localStorage.removeItem('formYear');
+    localStorage.removeItem('formLang');
+    localStorage.removeItem('formIgnore');
+    localStorage.removeItem('formAdditional');
+  };
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
+  const [validationError, setValidationError] = useState<string>("");
 
   useEffect(() => {
     window.onTelegramAuth = (user: TelegramUser) => {
       setTelegramUser(user);
+      async() => {
+        const account = await fetchAccountData(user.id);
+        if (account) {
+          createASession(account.$id);
+          setAccountData(account);
+        }
+      }
       setCurrentStep(FormType.Year);
     };
 
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute("data-telegram-login", "PaulsAISchoolbot");
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-auth-url", window.location.href);
-
-    const container = document.getElementById("telegram-login-widget");
-    if (container) {
-      container.innerHTML = ""; // Clear any existing content
-      container.appendChild(script);
-    }
+    createTelegramScript()
 
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
     });
   }, []);
 
+  useEffect(() => {
+    if (FormType.start === currentStep) {
+      createTelegramScript()
+    }
+  }, [currentStep])
 
+  function validateCurrentStep(): boolean {
+    setValidationError("");
+
+    switch (currentStep) {
+      case FormType.Year:
+        if (!year.trim()) {
+          setValidationError("Please enter your class");
+          return false;
+        }
+        if (!validateYear(year.trim())) {
+          setValidationError("Invalid class format. Examples: 10c, Q1, 11");
+          return false;
+        }
+        return true;
+
+      case FormType.Language:
+        if (!validateLanguage(lang)) {
+          setValidationError("Please select a valid language");
+          return false;
+        }
+        return true;
+
+      case FormType.Ignore:
+        // Optional step, no validation needed
+        return true;
+
+      case FormType.Additional:
+        // Optional step, no validation needed
+        return true;
+
+      default:
+        return true;
+    }
+  }
 
   async function finish() {
     const newAccountData = {
@@ -90,7 +189,9 @@ export function Form({
 
     if (newAccountData && newAccountData.telegramID) {
       await sendWelcomeMessage(newAccountData.telegramID);
+      await createASession(newUser.$id);
     }
+    clearFormStorage()
   }
 
   function getStep() {
@@ -129,10 +230,16 @@ export function Form({
 
   return (
     <main className="flex min-h-screen items-center justify-center overflow-hidden p-5">
-      <Card className="rounded-xl">
+      <Card className="rounded-xl w-[500px] max-w-full">
         <CardContent className="pt-5">
-          <div className="flex w-[500px] flex-col gap-9">
+          <div className="flex flex-col gap-9">
             {getStep()}
+
+            {validationError && (
+              <div className="text-sm text-red-500 animate-in fade-in slide-in-from-top-1">
+                {validationError}
+              </div>
+            )}
 
             <div className="flex flex-col gap-4">
               {!telegramUser && currentStep == FormType.start && (
@@ -175,7 +282,7 @@ export function Form({
                       }
                       if (currentStep == FormType.check) {
                         finish();
-                      } else {
+                      } else if (validateCurrentStep()) {
                         setCurrentStep((currentStep + 1) as FormType);
                       }
                     }}

@@ -1,6 +1,6 @@
 "use server"
-import { Models, Query } from "appwrite";
-import { databases, DATABASE_ID, Collection } from "./appwriteFunctions";
+import { ID, Models, Query } from "appwrite";
+import { databases, DATABASE_ID, Collection, createDocument } from "./appwriteFunctions";
 import { AccountData } from "~/app/models";
 
 export const fetchAccountData = async (

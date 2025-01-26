@@ -76,6 +76,23 @@ export async function handleLogout() {
   return null;
 }
 
+export async function createASession(userID: string) {
+  const data = {
+    accounts: userID,
+    tempCode: null,
+    expirationDate: new Date(Date.now() + 1000 * 60 * 5 + (1000 * 60 * 60 * 1)).toISOString(), // UTC+1, 5 mins expiry
+  };
+
+  const session = await createDocument(data, ID.unique(), Collection.session);
+  
+  const cookieStore = await cookies();
+  cookieStore.set("pauls-school-assistant-session", session.$id, {
+    path: "/",
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30 * 12,
+  });
+}
+
 function generateRandomString(length: number): string {
   const chars = "0123456789";
   let result = "";
