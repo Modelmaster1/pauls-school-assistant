@@ -95,7 +95,7 @@ export function Form({
     setAccountData(newUser);
 
     if (newAccountData && newAccountData.telegramID) {
-      sendWelcomeMessage(newAccountData.telegramID);
+      await sendWelcomeMessage(newAccountData.telegramID);
     }
   }
 
