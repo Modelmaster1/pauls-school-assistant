@@ -66,15 +66,9 @@ export function Form({
     getSubjectInfo().then((data) => {
       setSubjectInfoData(data);
     });
-
-    // Cleanup function
-    return () => {
-      if (container) {
-        container.innerHTML = "";
-      }
-      delete window.onTelegramAuth;
-    };
   }, []);
+
+
 
   async function finish() {
     const newAccountData = {

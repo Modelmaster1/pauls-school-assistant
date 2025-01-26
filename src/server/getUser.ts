@@ -1,3 +1,4 @@
+"use server"
 import { Models, Query } from "appwrite";
 import { databases, DATABASE_ID, Collection } from "./appwriteFunctions";
 import { AccountData } from "~/app/models";
@@ -19,11 +20,15 @@ export const fetchAccountData = async (
   }
 };
 
-export async function sendWelcomeMessage(id: number) {
+export async function sendWelcomeMessage(id: number): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    console.error('Telegram bot token is not set');
+    return false;
+  }
+  
   const method = 'sendMessage';
-
-  const text = `Welcome to <b>Paul's School Assistant!</b> 👋. \n You're all set!`
+  const text = `Welcome to <b>Paul's School Assistant!</b> 👋. \nYou're all set!`
   
   const payload: any = {
     chat_id: id,
@@ -42,11 +47,14 @@ export async function sendWelcomeMessage(id: number) {
 
     if (response.ok) {
       console.log('Message sent successfully!');
+      return true;
     } else {
-      const errorText = await response.text();
-      console.error(`Failed to send message: ${errorText}`);
+      const errorData = await response.json();
+      console.error('Failed to send message:', errorData);
+      return false;
     }
   } catch (error) {
     console.error('Error sending message:', error);
+    return false;
   }
 }
