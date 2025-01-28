@@ -4,7 +4,7 @@ import { Collection, getDocument } from "~/server/appwriteFunctions";
 import { AccountData, CurrentSchedule, TelegramUser } from "./models";
 import { useEffect, useRef, useState } from "react";
 import { fetchAccountData } from "~/server/getUser";
-import { Form } from "./form";
+import { Form } from "./_form/form";
 import { createCurrentSchedule } from "~/server/getSchedule";
 import { LoadingScreen } from "./loadingScreens";
 

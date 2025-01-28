@@ -16,8 +16,8 @@ export async function POST(req: Request) {
       subscription_data: {
         trial_period_days: 7,
       },
-      success_url: `${process.env.NEXT_PUBLIC_URL}success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}cancel`,
+      success_url: `${process.env.NEXT_PUBLIC_URL}?checkoutID={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}?checkoutID={CHECKOUT_SESSION_ID}`,
       custom_fields: [
         {
           key: "jokeField",
