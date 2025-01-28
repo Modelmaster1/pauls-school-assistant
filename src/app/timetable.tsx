@@ -400,7 +400,7 @@ function Event({
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
         onContextMenu={(e) => {
           e.preventDefault();
-          if (isDesktop) setIsInfoOpen(true);
+          setIsInfoOpen(true);
         }}
         onTouchStart={(e) => {
           if (isDesktop) return;
@@ -433,20 +433,20 @@ function Event({
                   Subject information and details
                 </DialogDescription>
               </DialogHeader>
-              <EventInfoContent data={data} isNotice={isNotice} periods={periods} />
+              <EventInfoContent data={data} periods={periods} />
             </DialogContent>
           </Dialog>
         ) : (
           <Drawer open={isInfoOpen} onOpenChange={setIsInfoOpen}>
             <DrawerContent>
-              <div className="mx-auto w-full max-w-sm pb-40">
+              <div className="mx-auto w-full pb-40 px-5">
                 <DrawerHeader>
                   <DrawerTitle>{isNotice ? data.descr : data.staticData.subject}</DrawerTitle>
                   <DrawerDescription>
                     Subject information and details
                   </DrawerDescription>
                 </DrawerHeader>
-                <EventInfoContent data={data} isNotice={isNotice} periods={periods} />
+                <EventInfoContent data={data} periods={periods} />
               </div>
             </DrawerContent>
           </Drawer>
@@ -491,7 +491,8 @@ function Event({
   );
 }
 
-function EventInfoContent({ data, isNotice, periods }: { data: CurrentEntryData | Notice; isNotice: boolean; periods: number[] }) {
+function EventInfoContent({ data, periods }: { data: CurrentEntryData | Notice; periods: number[] }) {
+  const isNotice = !("staticData" in data);
   const itemTint = isNotice
     ? null
     : data.dynamicData?.type &&
