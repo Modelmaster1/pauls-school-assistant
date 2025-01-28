@@ -86,6 +86,7 @@ export default function Timetable({
             <DayColumn
               key={i}
               day={key}
+              lang={accountData.lang}
               schedule={
                 currentSchedule[key as keyof typeof currentSchedule] as (
                   | CurrentEntryData
