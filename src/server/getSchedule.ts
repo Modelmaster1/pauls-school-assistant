@@ -63,9 +63,18 @@ async function getAdditionalSubjects(additional: string[]) {
   return data;
 }
 
-async function getNotices(affectedClass: string, friday: Date) {
+const localizedNoticeType: { [key: string]: {en: string, de: string} } = {
+  newRoom: {en: "different room", de: "anderer Raum"},
+  cancelled: {en: "cancelled", de: "fällt aus"},
+  likelyCancelled: {en: "likely cancelled", de: "fällt wahrscheinlich aus"},
+  diffSubject: {en: "different subject", de: "anderes Fach"},
+  unknown: {en: "special", de: "besonders"},
+  newTeacher: {en: "different teacher", de: "anderer Lehrer"},
+}
+
+async function getNotices(affectedClass: string, friday: Date, ignore: string[], lang: "en" | "de") {
   const result = await listDocuments(
-    [Query.equal("affectedClass", affectedClass)],
+    [Query.equal("affectedClass", affectedClass), Query.orderDesc("$createdAt")],
     Collection.notices,
   );
 
@@ -73,10 +82,14 @@ async function getNotices(affectedClass: string, friday: Date) {
     ...notice,
     date: new Date(notice.date),
     $createdAt: new Date(notice.$createdAt),
+    localizedType: localizedNoticeType[notice.type]?.[lang] ?? notice.type,
   }));
 
   return notices
-    .filter((notice) => isWithinFiveDaysOfFriday(notice.date, friday))
+    .filter((notice) => 
+      isWithinFiveDaysOfFriday(notice.date, friday) &&
+      (notice.subject ? !ignore.includes(notice.subject) : true)
+  )
     .sort((a, b) => b.$createdAt.getTime() - a.$createdAt.getTime());
 }
 
@@ -151,7 +164,7 @@ function convertScheduleArray(
       // Filter out any periods that fall within notice period range
       const updatedPeriods = entryPeriods.filter(period => 
         period < (noticePeriods[0] ?? 0) || 
-        period > (noticePeriods[1] ?? 0)
+        (noticePeriods.length > 1 && period > (noticePeriods[1] ?? 0))
       );
       
       // If periods changed, return updated entry
@@ -215,7 +228,7 @@ export async function createCurrentSchedule(user: AccountData) {
       ? await getAdditionalSubjects(user.additional)
       : [];
 
-  const notices = await getNotices(affectedClass, dateModel.fri);
+  const notices = await getNotices(affectedClass, dateModel.fri, user.ignore, user.lang);
 
   const weekType = notices[0]?.weekType ?? "b";
 

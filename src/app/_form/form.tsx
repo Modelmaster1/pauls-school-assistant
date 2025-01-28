@@ -7,13 +7,11 @@ import { Collection, createDocument } from "~/server/appwriteFunctions";
 import { Card, CardContent } from "~/components/ui/card";
 import { createASession } from "~/server/handleCodeLogin";
 import { fetchAccountData, sendWelcomeMessage } from "~/server/getUser";
-import { useSearchParams } from "next/navigation";
 import Start from "./start";
 import Year from "./year";
 import Language from "./language";
 import Ignore from "./ignore";
 import Additional from "./additional";
-import RedirectToStripeCheckout from "./stripeCheckout";
 import LoginCodeAuth from "./loginCode";
 import {
   clearFormStorage,

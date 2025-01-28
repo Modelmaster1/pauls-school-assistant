@@ -30,7 +30,7 @@ export default function HomePage({
 }) {
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   // Define proper type for telegramUser
-  const [telegramUser, setTelegramUser] = useState<{id: number} | null>(null);
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentSchedule, setCurrentSchedule] =
     useState<CurrentSchedule | null>(null);

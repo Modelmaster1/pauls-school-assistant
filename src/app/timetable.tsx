@@ -1,6 +1,12 @@
 "use client";
 import { cva } from "class-variance-authority";
-import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   AccountData,
   CurrentEntryData,
@@ -13,8 +19,7 @@ import {
 } from "./timeFunctions";
 import { LoadingScheduleScreen } from "./loadingScreens";
 import { Button } from "~/components/ui/button";
-import { MonitorSmartphone, Settings } from "lucide-react";
-import { createCodeLoginSession } from "~/server/handleCodeLogin";
+import { MoveRight, Settings } from "lucide-react";
 import AccountEditDrawer from "./accountEditDrawer";
 
 function calculateMinToPx(min: number) {
@@ -24,13 +29,12 @@ function calculateMinToPx(min: number) {
 export default function Timetable({
   accountData,
   currentSchedule,
-  setAccountData
+  setAccountData,
 }: {
   accountData: AccountData;
   currentSchedule: CurrentSchedule | null;
   setAccountData: Dispatch<SetStateAction<AccountData | null>>;
 }) {
-
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
 
   return (
@@ -166,7 +170,7 @@ export function FullEntry({
   const shouldBeHidden = isNotice
     ? figureOutWetherExtraNoticeIsOutOfDate()
     : entriesInSameTimeFrame.length >= 1 &&
-    ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
+      ((nextEntryPeriods && nextEntryPeriods[0]) ?? null) === periods[0];
 
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(
     getTimeDifferenceInMinutes(
@@ -181,12 +185,13 @@ export function FullEntry({
   );
 
   function figureOutWetherExtraNoticeIsOutOfDate() {
+    if (entriesInSameTimeFrame.length < 1) return false;
 
-    if (entriesInSameTimeFrame.length < 1) return false
+    const orderedEntries = ([...entriesInSameTimeFrame, data] as Notice[]).sort(
+      (a, b) => Number(b.$createdAt) - Number(a.$createdAt),
+    );
 
-    const orderedEntries = ([...entriesInSameTimeFrame, data] as Notice[]).sort((a, b) => Number(b.$createdAt) - Number(a.$createdAt))
-
-    return !(orderedEntries[0] === data)
+    return !(orderedEntries[0] === data);
   }
 
   return (
@@ -276,13 +281,18 @@ function Event({
   const isNotice = !("staticData" in data);
   const itemTint = isNotice
     ? null
-    : data.dynamicData
+    : data.dynamicData?.type &&
+        ["cancelled", "likelyCancelled", "special"].includes(
+          data.dynamicData.type,
+        )
       ? "none"
       : data.generalData?.tint;
   const noticeTintType = isNotice ? "special" : data.dynamicData?.type;
+
   const title = isNotice
     ? data.descr
     : (data.generalData?.name ?? data.staticData.subject.toUpperCase());
+
   const periods = isNotice ? data.periods : data.staticData.periods;
 
   const calculatedPeriodDuration = calculatePeriodDuration(periods) ?? 0;
@@ -373,13 +383,39 @@ function Event({
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
       >
         <div className="w-full sm:font-semibold">
-          {title} ({isNotice ? data.periods.join("-") : data.staticData.teacher}
-          )
+          {title}
+          {isNotice ? (
+            " (" + data.periods.join("-") + ")" + (data.subject != null ? ` in ${data.subject}` : "")
+          ) : data.dynamicData?.oldTeacher ? (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="line-through">
+              {" "}({data.dynamicData?.oldTeacher}
+              </span>
+              <MoveRight size={10} />
+              {data.dynamicData?.teacher ?? data.staticData.teacher})
+            </div>
+          ) : (
+            <span>{" "}({data.staticData.teacher})</span>
+          )}
         </div>
-        <div className="">{isNotice ? data.room : data.staticData.room}</div>
+        <div className="">
+          {isNotice ? (
+            data.room
+          ) : data.dynamicData?.oldRoom ? (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="line-through">
+                {data.dynamicData?.oldRoom}
+              </span>
+              <MoveRight size={10} />
+              {data.dynamicData?.room ?? data.staticData.room}
+            </div>
+          ) : (
+            <span>{data.staticData.room}</span>
+          )}
+        </div>
         <div>{otherEnrtiesString}</div>
         <div>
-          {isNotice ? "special notice" : (data.dynamicData?.type ?? null)}
+          {isNotice ? data.localizedType : (data.dynamicData?.localizedType ?? null)}
         </div>
       </div>
     </div>

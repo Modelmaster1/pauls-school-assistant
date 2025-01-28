@@ -75,7 +75,7 @@ export default function AccountEditDrawer({
       ) : (
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerContent>
-            <div className="mx-auto w-full max-w-sm">
+            <div className="mx-auto w-full max-w-sm max-h-[80vh] overflow-y-auto">
               <DrawerHeader>
                 <DrawerTitle>Edit Account</DrawerTitle>
                 <DrawerDescription>
@@ -176,7 +176,7 @@ function AccountContent({
   }
 
   return (
-    <div>
+    <div className="max-h-[80vh] overflow-y-auto">
       {showCodeDialog && timeLeft > 0 ? (
         <div className="mb-4 flex items-center gap-8 rounded-lg bg-[#262626] p-3 text-white">
           <div>

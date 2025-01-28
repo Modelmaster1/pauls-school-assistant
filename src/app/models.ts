@@ -34,6 +34,11 @@ export type Notice = {
     oldRoom: string | null,
     weekType: "a" | "b",
     descr: string | null,
+
+    teacher: string | null,
+    oldTeacher: string | null,
+
+    localizedType: string,
 }
 
 export type SubjectInfo = {
