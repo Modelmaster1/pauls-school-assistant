@@ -396,15 +396,15 @@ function Event({
       ref={itemRef}
     >
       <div
-        className="group relative flex flex-col gap-1 rounded-xl p-1 sm:p-3 select-none sm:select-text"
+        className="group relative flex flex-col gap-1 rounded-xl p-1 sm:p-3 select-none"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
         onContextMenu={(e) => {
           e.preventDefault();
           setIsInfoOpen(true);
         }}
         onTouchStart={(e) => {
-          if (isDesktop) return;
-          const timer = setTimeout(() => setIsInfoOpen(true), 500);
+          e.preventDefault(); // Prevent default touch behavior
+          const timer = setTimeout(() => setIsInfoOpen(true),  300);
           const cleanup = () => {
             clearTimeout(timer);
             document.removeEventListener('touchend', cleanup);
