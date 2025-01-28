@@ -43,7 +43,7 @@ export default function HomePage({
       const user = telegram.initDataUnsafe?.user;
       setTelegramUser(user ?? null);
 
-      start(user?.id ?? 7972709593);
+      start(user?.id ?? null);
     }
   }, []);
 
