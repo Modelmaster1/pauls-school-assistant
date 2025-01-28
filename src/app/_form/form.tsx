@@ -124,7 +124,7 @@ export function Form({
   async function finish() {
     const newAccountData = {
       // based on user data, but doesn't have all the properties
-      username: telegramUser?.username ?? "Anonymous",
+      username: telegramUser?.username ?? telegramUser?.first_name ?? "Anonymous",
       year: year,
       telegramID: telegramUser?.id,
       ignore: ignore,

@@ -81,4 +81,5 @@ export type AccountData = {
 export interface TelegramUser {
   id: number;
   username?: string;
+  first_name?: string;
 }
