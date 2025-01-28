@@ -19,7 +19,22 @@ import {
 } from "./timeFunctions";
 import { LoadingScheduleScreen } from "./loadingScreens";
 import { Button } from "~/components/ui/button";
-import { MoveRight, Settings } from "lucide-react";
+import { Info, MoveRight, Settings } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "~/components/ui/drawer";
+import { useMediaQuery } from "@uidotdev/usehooks";
 import AccountEditDrawer from "./accountEditDrawer";
 
 function calculateMinToPx(min: number) {
@@ -276,6 +291,8 @@ function Event({
   isHidden?: boolean;
 }) {
   const [width, setWidth] = useState<number>(0);
+  const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const itemRef = useRef<HTMLDivElement>(null);
 
   const isNotice = !("staticData" in data);
@@ -379,9 +396,61 @@ function Event({
       ref={itemRef}
     >
       <div
-        className="flex flex-col gap-1 rounded-xl p-1 sm:p-3"
+        className="group relative flex flex-col gap-1 rounded-xl p-1 sm:p-3"
         style={{ height: "100%", backgroundColor: "rgba(31, 31, 31, 0.5)" }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (isDesktop) setIsInfoOpen(true);
+        }}
+        onTouchStart={(e) => {
+          if (isDesktop) return;
+          const timer = setTimeout(() => setIsInfoOpen(true), 500);
+          const cleanup = () => {
+            clearTimeout(timer);
+            document.removeEventListener('touchend', cleanup);
+            document.removeEventListener('touchmove', cleanup);
+          };
+          document.addEventListener('touchend', cleanup);
+          document.addEventListener('touchmove', cleanup);
+        }}
       >
+        {isDesktop && (
+          <Button
+            onClick={() => setIsInfoOpen(true)}
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1 z-10 h-4 w-4 rounded-full bg-neutral-800/30 p-0 hover:bg-neutral-700/40 transition-opacity opacity-0 group-hover:opacity-100"
+          >
+            <Info size={10} />
+          </Button>
+        )}
+        {isDesktop ? (
+          <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{isNotice ? data.descr : data.staticData.subject}</DialogTitle>
+                <DialogDescription>
+                  Subject information and details
+                </DialogDescription>
+              </DialogHeader>
+              <EventInfoContent data={data} isNotice={isNotice} periods={periods} />
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Drawer open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+            <DrawerContent>
+              <div className="mx-auto w-full max-w-sm pb-40">
+                <DrawerHeader>
+                  <DrawerTitle>{isNotice ? data.descr : data.staticData.subject}</DrawerTitle>
+                  <DrawerDescription>
+                    Subject information and details
+                  </DrawerDescription>
+                </DrawerHeader>
+                <EventInfoContent data={data} isNotice={isNotice} periods={periods} />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        )}
         <div className="w-full sm:font-semibold">
           {title}
           {isNotice ? (
@@ -417,6 +486,79 @@ function Event({
         <div>
           {isNotice ? data.localizedType : (data.dynamicData?.localizedType ?? null)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EventInfoContent({ data, isNotice, periods }: { data: CurrentEntryData | Notice; isNotice: boolean; periods: number[] }) {
+  const itemTint = isNotice
+    ? null
+    : data.dynamicData?.type &&
+      ["cancelled", "likelyCancelled", "special"].includes(
+        data.dynamicData.type
+      )
+    ? "none"
+    : data.generalData?.tint;
+
+  const tintColor = {
+    red: "text-red-300",
+    orange: "text-orange-300",
+    blue: "text-blue-300",
+    green: "text-green-300",
+    pink: "text-pink-300",
+    purple: "text-purple-300",
+    yellow: "text-yellow-300",
+    gray: "text-gray-300",
+    white: "text-neutral-300",
+    clear: "text-neutral-400",
+    default: "text-neutral-500",
+    none: "text-neutral-500",
+  }[itemTint || "default"];
+
+  return (
+    <div className="flex flex-col gap-4">
+      {!isNotice && (
+        <>
+          <div>
+            <div className="text-sm font-medium">Teacher</div>
+            <div className={tintColor}>{data.staticData.teacher}</div>
+          </div>
+          <div>
+            <div className="text-sm font-medium">Room</div>
+            <div className={tintColor}>{data.staticData.room}</div>
+          </div>
+          {data.generalData?.name && (
+            <div>
+              <div className="text-sm font-medium">Name</div>
+              <div className={tintColor}>{data.generalData.name}</div>
+            </div>
+          )}
+          {data.dynamicData?.type && (
+            <div>
+              <div className="text-sm font-medium">Status</div>
+              <div className={tintColor}>{data.dynamicData.localizedType}</div>
+            </div>
+          )}
+        </>
+      )}
+      {isNotice && (
+        <>
+          <div>
+            <div className="text-sm font-medium">Type</div>
+            <div className={tintColor}>{data.localizedType}</div>
+          </div>
+          {data.room && (
+            <div>
+              <div className="text-sm font-medium">Room</div>
+              <div className={tintColor}>{data.room}</div>
+            </div>
+          )}
+        </>
+      )}
+      <div>
+        <div className="text-sm font-medium">Time</div>
+        <div className={tintColor}>Period {periods.join("-")}</div>
       </div>
     </div>
   );
