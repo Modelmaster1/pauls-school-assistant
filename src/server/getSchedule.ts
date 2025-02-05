@@ -17,12 +17,22 @@ async function getSchedule(affectedClass: string, weekType: "a" | "b") {
   const result = await listDocuments(
     [
       Query.equal("affectedClass", affectedClass),
-      Query.equal("type", weekType),
+      Query.contains("weekType", [weekType, "both"]),
     ],
-    Collection.weeklySchedule,
+    Collection.scheduleEntry,
   );
 
-  const schedule: WeeklySchedule = result.documents[0];
+  const scheduleItems = result.documents; // all the items in the schedule
+
+  const schedule: WeeklySchedule = {
+    mon: scheduleItems.filter((item) => item.weekDay === 1),
+    tue: scheduleItems.filter((item) => item.weekDay === 2),
+    wed: scheduleItems.filter((item) => item.weekDay === 3),
+    thu: scheduleItems.filter((item) => item.weekDay === 4),
+    fri: scheduleItems.filter((item) => item.weekDay === 5),
+    sat: scheduleItems.filter((item) => item.weekDay === 6),
+    sun: scheduleItems.filter((item) => item.weekDay === 0),
+  }
   return schedule;
 }
 
