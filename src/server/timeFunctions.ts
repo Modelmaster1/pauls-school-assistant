@@ -53,7 +53,6 @@ export function calculatePeriodDuration(
   const lastPeriod = periods[periods.length - 1] ?? null;
 
   if (periods.length === 1) {
-    console.log("calculatePeriodDuration: firstPeriod and no lastPeriod");
     return 45; // the length of a period
   }
 

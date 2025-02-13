@@ -94,10 +94,10 @@ export const deleteDocument = async (documentId: string, collectionId: string): 
  * @param queries - Optional queries for filtering, searching, etc.
  * @returns A list of documents
  */
-export const listDocuments = async (
+export const listDocuments = async<T extends Models.Document> (
   queries: string[] = [],
   collectionId: string
-  ): Promise<Models.DocumentList<Models.Document>> => {
+  ): Promise<Models.DocumentList<T>> => {
   try {
     return await databases.listDocuments(DATABASE_ID, collectionId, queries);
   } catch (error: any) {

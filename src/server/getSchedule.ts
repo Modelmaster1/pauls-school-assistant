@@ -3,7 +3,6 @@ import {
   AccountData,
   CurrentEntryData,
   CurrentSchedule,
-  FullSchedule,
   Notice,
   ScheduleEntry,
   SubjectInfo,
@@ -11,18 +10,31 @@ import {
 } from "~/app/models";
 import { Collection, listDocuments } from "./appwriteFunctions";
 import { Query } from "appwrite";
-import getWeekDates from "~/app/timeFunctions";
+import getWeekDates from "~/server/timeFunctions";
 
-async function getSchedule(affectedClass: string, weekType: "a" | "b") {
-  const result = await listDocuments(
-    [
-      Query.equal("affectedClass", affectedClass),
-      Query.contains("weekType", [weekType, "both"]),
-    ],
+async function getSchedule(
+  affectedClass: string,
+  weekType: "a" | "b",
+  editMode: boolean,
+) {
+  const affectedClassFilterQuery = Query.equal("affectedClass", affectedClass);
+  const filterQueries = editMode
+    ? [affectedClassFilterQuery]
+    : [
+        affectedClassFilterQuery,
+        Query.contains("weekType", [weekType, "both"]),
+      ];
+
+  const result = await listDocuments<ScheduleEntry>(
+    filterQueries,
     Collection.scheduleEntry,
   );
 
   const scheduleItems = result.documents; // all the items in the schedule
+
+  if (result.total === 0 && !editMode) {
+    return null;
+  }
 
   const schedule: WeeklySchedule = {
     mon: scheduleItems.filter((item) => item.weekDay === 1),
@@ -30,40 +42,22 @@ async function getSchedule(affectedClass: string, weekType: "a" | "b") {
     wed: scheduleItems.filter((item) => item.weekDay === 3),
     thu: scheduleItems.filter((item) => item.weekDay === 4),
     fri: scheduleItems.filter((item) => item.weekDay === 5),
-    sat: scheduleItems.filter((item) => item.weekDay === 6),
-    sun: scheduleItems.filter((item) => item.weekDay === 0),
-  }
+  };
   return schedule;
 }
 
 export async function getSubjectInfo() {
-  const result = await listDocuments(undefined, Collection.subjectInfo);
+  const result = await listDocuments<SubjectInfo>(
+    undefined,
+    Collection.subjectInfo,
+  );
 
   const data: SubjectInfo[] = result.documents;
   return data;
 }
 
-function isWithinFiveDaysOfFriday(date: Date, friday: Date): boolean {
-  // Check if the date is a weekday (Monday to Friday)
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return false; // Not a weekday
-  }
-
-  if (date > friday) {
-    return false;
-  }
-
-  // Calculate the difference in days between the given date and the Friday
-  const timeDifference = Math.abs(date.getTime() - friday.getTime());
-  const daysDifference = timeDifference / (1000 * 60 * 60 * 24);
-
-  // Check if the difference is within 5 days
-  return daysDifference <= 5;
-}
-
 async function getAdditionalSubjects(additional: string[]) {
-  const result = await listDocuments(
+  const result = await listDocuments<ScheduleEntry>(
     [Query.contains("subject", additional)],
     Collection.scheduleEntry,
   );
@@ -73,34 +67,45 @@ async function getAdditionalSubjects(additional: string[]) {
   return data;
 }
 
-const localizedNoticeType: { [key: string]: {en: string, de: string} } = {
-  newRoom: {en: "different room", de: "anderer Raum"},
-  cancelled: {en: "cancelled", de: "fällt aus"},
-  likelyCancelled: {en: "likely cancelled", de: "fällt wahrscheinlich aus"},
-  diffSubject: {en: "different subject", de: "anderes Fach"},
-  unknown: {en: "special", de: "besonders"},
-  newTeacher: {en: "different teacher", de: "anderer Lehrer"},
-}
+const localizedNoticeType: { [key: string]: { en: string; de: string } } = {
+  newRoom: { en: "different room", de: "anderer Raum" },
+  cancelled: { en: "cancelled", de: "fällt aus" },
+  likelyCancelled: { en: "likely cancelled", de: "fällt wahrscheinlich aus" },
+  diffSubject: { en: "different subject", de: "anderes Fach" },
+  unknown: { en: "special", de: "besonders" },
+  newTeacher: { en: "different teacher", de: "anderer Lehrer" },
+};
 
-async function getNotices(affectedClass: string, friday: Date, ignore: string[], lang: "en" | "de") {
-  const result = await listDocuments(
-    [Query.equal("affectedClass", affectedClass), Query.orderDesc("$createdAt")],
+async function getNotices(
+  affectedClass: string,
+  ignore: string[],
+  lang: "en" | "de",
+) {
+  const friday = getWeekDates().fri;
+  const mondayTime = new Date(friday);
+  mondayTime.setDate(friday.getDate() - 4);
+
+  const ignoreQueries = ignore.map((item) => Query.notEqual("subject", item)); // not ideal might change later
+
+  const result = await listDocuments<Notice>(
+    [
+      Query.greaterThanEqual("date", mondayTime.toISOString()),
+      Query.lessThanEqual("date", friday.toISOString()),
+      Query.equal("affectedClass", affectedClass),
+      Query.orderDesc("$createdAt"),
+      ...ignoreQueries,
+    ],
     Collection.notices,
   );
 
   const notices: Notice[] = result.documents.map((notice) => ({
     ...notice,
     date: new Date(notice.date),
-    $createdAt: new Date(notice.$createdAt),
+    createdAt: new Date(notice.$createdAt),
     localizedType: localizedNoticeType[notice.type]?.[lang] ?? notice.type,
   }));
 
-  return notices
-    .filter((notice) => 
-      isWithinFiveDaysOfFriday(notice.date, friday) &&
-      (notice.subject ? !ignore.includes(notice.subject) : true)
-  )
-    .sort((a, b) => b.$createdAt.getTime() - a.$createdAt.getTime());
+  return notices.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 function convertEntryToCurrentEntry(
@@ -127,7 +132,7 @@ function convertScheduleArray(
   schedule: ScheduleEntry[],
   notices: Notice[],
   subjectInfoBase: SubjectInfo[],
-  weekday: { s: "mon" | "tue" | "wed" | "thu" | "fri"; n: number },
+  weekday: number,
   user: AccountData,
   additionalSubjects: ScheduleEntry[],
 ) {
@@ -135,11 +140,11 @@ function convertScheduleArray(
 
   const activeAdditionalSubjects = additionalSubjects.filter(
     (subject) =>
-      subject.weekDay == weekday.s && !user.ignore.includes(subject.subject),
+      subject.weekDay == weekday && !user.ignore.includes(subject.subject),
   );
 
   const otherNotices = notices.filter(
-    (notice) => notice.type === "unknown" && notice.date.getDay() == weekday.n,
+    (notice) => notice.type === "unknown" && notice.date.getDay() == weekday,
   );
 
   [...schedule, ...activeAdditionalSubjects].forEach((entry: ScheduleEntry) => {
@@ -154,7 +159,7 @@ function convertScheduleArray(
           (notice: Notice) =>
             notice.subject === entry.subject &&
             JSON.stringify(notice.periods) === JSON.stringify(entry.periods) &&
-            notice.date.getDay() == weekday.n,
+            notice.date.getDay() == weekday,
         ) ?? null;
       const currentEntry = convertEntryToCurrentEntry(
         entry,
@@ -167,35 +172,35 @@ function convertScheduleArray(
   });
 
   otherNotices.forEach((notice) => {
-    result = result.map(entry => {
-      const noticePeriods = notice.periods;
-      const entryPeriods = entry.staticData.periods;
-      
-      // Filter out any periods that fall within notice period range
-      const updatedPeriods = entryPeriods.filter(period => 
-        period < (noticePeriods[0] ?? 0) || 
-        (noticePeriods.length > 1 && period > (noticePeriods[1] ?? 0))
-      );
-      
-      // If periods changed, return updated entry
-      if (updatedPeriods.length !== entryPeriods.length) {
-        return {
-          ...entry,
-          staticData: {
-            ...entry.staticData,
-            periods: updatedPeriods
-          }
-        };
-      }
-      
-      return entry;
-    }).filter(entry => entry.staticData.periods.length > 0);
-  });  
+    result = result
+      .map((entry) => {
+        const noticePeriods = notice.periods;
+        const entryPeriods = entry.staticData.periods;
 
-  const mixedResult = [
-    ...result,
-    ...otherNotices,
-  ].sort((a, b) => {
+        // Filter out any periods that fall within notice period range
+        const updatedPeriods = entryPeriods.filter(
+          (period) =>
+            period < (noticePeriods[0] ?? 0) ||
+            (noticePeriods.length > 1 && period > (noticePeriods[1] ?? 0)),
+        );
+
+        // If periods changed, return updated entry
+        if (updatedPeriods.length !== entryPeriods.length) {
+          return {
+            ...entry,
+            staticData: {
+              ...entry.staticData,
+              periods: updatedPeriods,
+            },
+          };
+        }
+
+        return entry;
+      })
+      .filter((entry) => entry.staticData.periods.length > 0);
+  });
+
+  const mixedResult = [...result, ...otherNotices].sort((a, b) => {
     const aFirstPeriod =
       "staticData" in a ? (a.staticData.periods[0] ?? 0) : (a.periods[0] ?? 0);
     const bFirstPeriod =
@@ -207,28 +212,30 @@ function convertScheduleArray(
   return mixedResult;
 }
 
-const weekDayModel: weekDayModel = {
-  mon: { s: "mon", n: 1 },
-  tue: { s: "tue", n: 2 },
-  wed: { s: "wed", n: 3 },
-  thu: { s: "thu", n: 4 },
-  fri: { s: "fri", n: 5 },
-};
+async function getFallBackWeekType() {
+  const friday = getWeekDates().fri;
+  const mondayTime = new Date(friday);
+  mondayTime.setDate(friday.getDate() - 4);
 
-interface weekDayModel {
-  mon: weekDayInfo;
-  tue: weekDayInfo;
-  wed: weekDayInfo;
-  thu: weekDayInfo;
-  fri: weekDayInfo;
+  const stuff = await listDocuments<Notice>(
+    [
+      Query.greaterThanEqual("date", mondayTime.toISOString()),
+      Query.lessThanEqual("date", friday.toISOString()),
+      Query.limit(1),
+      Query.orderDesc("$createdAt"),
+    ],
+    Collection.notices,
+  );
+
+  const result = stuff.documents[0]?.weekType ?? null;
+
+  return result;
 }
 
-interface weekDayInfo {
-  s: "mon" | "tue" | "wed" | "thu" | "fri";
-  n: number;
-}
-
-export async function createCurrentSchedule(user: AccountData) {
+export async function createCurrentSchedule(
+  user: AccountData,
+  editMode: boolean,
+) {
   const affectedClass = user.year;
   const dateModel = getWeekDates();
   const subjectInfo = await getSubjectInfo();
@@ -238,11 +245,19 @@ export async function createCurrentSchedule(user: AccountData) {
       ? await getAdditionalSubjects(user.additional)
       : [];
 
-  const notices = await getNotices(affectedClass, dateModel.fri, user.ignore, user.lang);
+  const notices: Notice[] = editMode
+    ? []
+    : await getNotices(affectedClass, user.ignore, user.lang);
 
-  const weekType = notices[0]?.weekType ?? "b";
+  const fallBack = notices.length <= 0 ? await getFallBackWeekType() : null;
 
-  const staticSchedule = await getSchedule(affectedClass, weekType);
+  const weekType = notices[0]?.weekType ?? fallBack ?? "a";
+
+  const staticSchedule = await getSchedule(affectedClass, weekType, editMode);
+
+  if (!staticSchedule) {
+    return null;
+  }
 
   const result: CurrentSchedule = {
     weekkType: weekType,
@@ -252,7 +267,7 @@ export async function createCurrentSchedule(user: AccountData) {
       staticSchedule.mon,
       notices,
       subjectInfo,
-      weekDayModel.mon,
+      1,
       user,
       additionalSubjects,
     ),
@@ -260,7 +275,7 @@ export async function createCurrentSchedule(user: AccountData) {
       staticSchedule.tue,
       notices,
       subjectInfo,
-      weekDayModel.tue,
+      2,
       user,
       additionalSubjects,
     ),
@@ -268,7 +283,7 @@ export async function createCurrentSchedule(user: AccountData) {
       staticSchedule.wed,
       notices,
       subjectInfo,
-      weekDayModel.wed,
+      3,
       user,
       additionalSubjects,
     ),
@@ -276,7 +291,7 @@ export async function createCurrentSchedule(user: AccountData) {
       staticSchedule.thu,
       notices,
       subjectInfo,
-      weekDayModel.thu,
+      4,
       user,
       additionalSubjects,
     ),
@@ -284,7 +299,7 @@ export async function createCurrentSchedule(user: AccountData) {
       staticSchedule.fri,
       notices,
       subjectInfo,
-      weekDayModel.fri,
+      5,
       user,
       additionalSubjects,
     ),

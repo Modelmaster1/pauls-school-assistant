@@ -7,27 +7,16 @@ import { fetchAccountData } from "~/server/getUser";
 import { Form } from "./_form/form";
 import { createCurrentSchedule } from "~/server/getSchedule";
 import { LoadingScreen } from "./loadingScreens";
-
-// Add type declaration for Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        ready: () => void;
-        initDataUnsafe?: {
-          user?: TelegramUser;
-        };
-      };
-    };
-    onTelegramAuth?: (user: TelegramUser) => void;
-  }
-}
+import { useSearchParams } from "next/navigation";
 
 export default function HomePage({
   loginCookie,
 }: {
   loginCookie: string | null;
 }) {
+  const searchParams = useSearchParams()
+  const isEdit = searchParams.get("edit") === "true";
+
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   // Define proper type for telegramUser
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
@@ -43,6 +32,8 @@ export default function HomePage({
       const user = telegram.initDataUnsafe?.user;
       setTelegramUser(user ?? null);
 
+      console.log(isEdit)
+
       start(user?.id ?? null);
     }
   }, []);
@@ -53,9 +44,9 @@ export default function HomePage({
     }
 
     setLoading(true);
-    // Fix: Immediately invoke the async function
+
     (async () => {
-      setCurrentSchedule(await createCurrentSchedule(accountData));
+      setCurrentSchedule(await createCurrentSchedule(accountData, isEdit));
       setLoading(false);
     })();
   }, [accountData]);
@@ -66,7 +57,7 @@ export default function HomePage({
         const account = await fetchAccountData(telegramID);
         if (account) {
           setAccountData(account);
-          setCurrentSchedule(await createCurrentSchedule(account));
+          setCurrentSchedule(await createCurrentSchedule(account, isEdit));
         }
         setLoading(false);
         return;
@@ -84,7 +75,7 @@ export default function HomePage({
       }
       const user: AccountData = sessionData.accounts;
       setAccountData(user);
-      setCurrentSchedule(await createCurrentSchedule(user));
+      setCurrentSchedule(await createCurrentSchedule(user, isEdit));
       setLoading(false);
     } catch (error) {
       console.error("Fetch error:", error);
@@ -95,7 +86,7 @@ export default function HomePage({
   return loading ? (
     <LoadingScreen/>
   ) : accountData ? (
-    <Timetable accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} />
+    <Timetable accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} setCurrentSchedule={isEdit ? setCurrentSchedule : null} />
   ) : (
     <Form telegramUser={telegramUser} setTelegramUser={setTelegramUser} setAccountData={setAccountData} />
   );
