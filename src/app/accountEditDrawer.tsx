@@ -32,13 +32,16 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { createCodeLoginSession, handleLogout } from "~/server/handleCodeLogin";
+import { useRouter } from "next/navigation";
 
 export default function AccountEditDrawer({
   accountData,
   setAccountData,
   isOpen,
   setIsOpen,
+  setIsEdit,
 }: {
+  setIsEdit: Dispatch<SetStateAction<boolean>>;
   accountData: AccountData;
   setAccountData: Dispatch<SetStateAction<AccountData | null>>;
   isOpen: boolean;
@@ -46,6 +49,13 @@ export default function AccountEditDrawer({
 }) {
   const [subjectInfoData, setSubjectInfoData] = useState<SubjectInfo[]>([]);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const router = useRouter();
+
+  function switchToScheduleEditMode() {
+    router.push("/?edit=true");
+    setIsEdit(true);
+    setIsOpen(false);
+  }
 
   useEffect(() => {
     getSubjectInfo().then((data) => {
@@ -65,6 +75,7 @@ export default function AccountEditDrawer({
               </DialogDescription>
             </DialogHeader>
             <AccountContent
+              handleSwitchToScheduleEditMode={switchToScheduleEditMode}
               accountData={accountData}
               setAccountData={setAccountData}
               setIsOpen={setIsOpen}
@@ -75,7 +86,7 @@ export default function AccountEditDrawer({
       ) : (
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerContent>
-            <div className="mx-auto w-full max-w-sm max-h-[80vh] overflow-y-auto">
+            <div className="mx-auto max-h-[80vh] w-full max-w-sm overflow-y-auto">
               <DrawerHeader>
                 <DrawerTitle>Edit Account</DrawerTitle>
                 <DrawerDescription>
@@ -85,6 +96,7 @@ export default function AccountEditDrawer({
               </DrawerHeader>
               <div className="p-4 pb-8 pt-2">
                 <AccountContent
+                  handleSwitchToScheduleEditMode={switchToScheduleEditMode}
                   accountData={accountData}
                   setAccountData={setAccountData}
                   setIsOpen={setIsOpen}
@@ -104,7 +116,9 @@ function AccountContent({
   setAccountData,
   setIsOpen,
   subjectInfoData,
+  handleSwitchToScheduleEditMode,
 }: {
+  handleSwitchToScheduleEditMode: () => void;
   accountData: AccountData;
   setAccountData: Dispatch<SetStateAction<AccountData | null>>;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
@@ -214,16 +228,29 @@ function AccountContent({
             className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:ring-neutral-300"
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="year" className="text-sm font-medium">
-            Year
-          </label>
-          <input
-            id="year"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:ring-neutral-300"
-          />
+        <div className="flex flex-col gap-0">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="year" className="text-sm font-medium">
+              Year
+            </label>
+            <input
+              id="year"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:focus:ring-neutral-300"
+            />
+          </div>
+          <div className="flex items-center text-sm opacity-75">
+            <div>Not your current schedule?</div>
+            <Button
+              variant="link"
+              size="sm"
+              className="opacity-90 px-1"
+              onClick={handleSwitchToScheduleEditMode}
+            >
+              Edit it
+            </Button>
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="lang" className="text-sm font-medium">
@@ -330,7 +357,11 @@ function AccountContent({
   );
 }
 
-function LogOutButton({  setAccountData }: {setAccountData: React.Dispatch<React.SetStateAction<AccountData | null>>}) {
+function LogOutButton({
+  setAccountData,
+}: {
+  setAccountData: React.Dispatch<React.SetStateAction<AccountData | null>>;
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>

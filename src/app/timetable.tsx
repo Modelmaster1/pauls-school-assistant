@@ -57,11 +57,13 @@ export default function Timetable({
   currentSchedule,
   setAccountData,
   setCurrentSchedule, // decides wether we have edit mode or not
+  setIsEdit,
 }: {
   accountData: AccountData;
   currentSchedule: CurrentSchedule | null;
   setCurrentSchedule: Dispatch<SetStateAction<CurrentSchedule | null>> | null;
   setAccountData: Dispatch<SetStateAction<AccountData | null>>;
+  setIsEdit: Dispatch<SetStateAction<boolean>>;
 }) {
   const router = useRouter();
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
@@ -115,7 +117,7 @@ export default function Timetable({
     const dataModel = {
       ...newItem,
       weekDay: dayModel[currentEditDay].n,
-      affectedClass: accountData.year
+      affectedClass: accountData.year,
     };
 
     const fullModelWithMetadata = oldDataForEdit
@@ -198,6 +200,7 @@ export default function Timetable({
         oldData={oldDataForEdit?.staticData}
       />
       <AccountEditDrawer
+        setIsEdit={setIsEdit}
         accountData={accountData}
         setAccountData={setAccountData}
         isOpen={isEditDrawerOpen}
@@ -511,6 +514,7 @@ function Event({
   const itemRef = useRef<HTMLDivElement>(null);
 
   const isNotice = !("staticData" in data);
+
   const itemTint = isNotice
     ? null
     : data.dynamicData?.type &&
@@ -520,10 +524,6 @@ function Event({
       ? "none"
       : data.generalData?.tint;
   const noticeTintType = isNotice ? "special" : data.dynamicData?.type;
-
-  const title = isNotice
-    ? data.descr
-    : (data.generalData?.name ?? data.staticData.subject.toUpperCase());
 
   const periods = isNotice ? data.periods : data.staticData.periods;
 
@@ -693,7 +693,17 @@ function Event({
           </Drawer>
         )}
         <div className="w-full sm:font-semibold">
-          {title}
+          {isNotice ? (
+            data.descr
+          ) : data.dynamicData?.oldSubject ? (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="line-through">{data.generalData?.name ?? data.staticData.subject.toUpperCase()}</span>
+              <MoveRight size={10} />
+              {data.dynamicData?.subject}
+            </div>
+          ) : (
+            (data.generalData?.name ?? data.staticData.subject.toUpperCase())
+          )}
           {isNotice ? (
             " (" +
             data.periods.join("-") +

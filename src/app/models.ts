@@ -24,6 +24,7 @@ export interface Notice extends Models.Document {
   affectedClass: string;
   date: Date;
   subject: string | null;
+  oldSubject: string | null;
   periods: number[];
   type: string;
   room: string | null;

@@ -1,5 +1,4 @@
 "use client";
-
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { ScheduleEntry, SubjectInfo } from "./models";
 import { Button } from "~/components/ui/button";
@@ -11,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "~/components/ui/dialog";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import {
@@ -19,9 +17,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "~/components/ui/drawer";
-import { Plus } from "lucide-react";
 import { getSubjectInfo } from "~/server/getSchedule";
 
 export default function ScheduleEntryForm({
@@ -129,12 +125,16 @@ function FormContent({
     if (!currentItem || !validateForm()) return;
 
     const formattedRoom = currentItem.room
-      .toUpperCase()
-      .replace(/[^A-B0-9.]/g, "");
+      .charAt(0).toUpperCase() + currentItem.room.slice(1)
+
+    const endPeriod = startPeriod + duration - 1;
+    const periods = endPeriod === startPeriod
+      ? [startPeriod]
+      : [startPeriod, endPeriod];
 
     const entry = {
       ...currentItem,
-      periods: [startPeriod, startPeriod + duration - 1],
+      periods: periods,
       room: formattedRoom,
       weekType,
     };
@@ -308,7 +308,6 @@ function FormContent({
                 setErrors((prev) => ({ ...prev, room: "" }));
               }
             }}
-            pattern="[AaBb][0-9]\.[0-9]{2}"
             className={errors.room ? "border-red-500" : ""}
             required
           />

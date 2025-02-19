@@ -15,7 +15,8 @@ export default function HomePage({
   loginCookie: string | null;
 }) {
   const searchParams = useSearchParams()
-  const isEdit = searchParams.get("edit") === "true";
+
+  const [isEdit, setIsEdit] = useState<boolean>(searchParams.get("edit") === "true");
 
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   // Define proper type for telegramUser
@@ -49,7 +50,7 @@ export default function HomePage({
       setCurrentSchedule(await createCurrentSchedule(accountData, isEdit));
       setLoading(false);
     })();
-  }, [accountData]);
+  }, [accountData, isEdit]);
 
   async function start(telegramID: number | null) {
     try {
@@ -86,7 +87,7 @@ export default function HomePage({
   return loading ? (
     <LoadingScreen/>
   ) : accountData ? (
-    <Timetable accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} setCurrentSchedule={isEdit ? setCurrentSchedule : null} />
+    <Timetable setIsEdit={setIsEdit} accountData={accountData} currentSchedule={currentSchedule} setAccountData={setAccountData} setCurrentSchedule={isEdit ? setCurrentSchedule : null} />
   ) : (
     <Form telegramUser={telegramUser} setTelegramUser={setTelegramUser} setAccountData={setAccountData} />
   );

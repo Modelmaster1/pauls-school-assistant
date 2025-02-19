@@ -149,22 +149,36 @@ function convertScheduleArray(
 
   [...schedule, ...activeAdditionalSubjects].forEach((entry: ScheduleEntry) => {
     if (!user.ignore.includes(entry.subject)) {
-      const subjectInfo =
-        subjectInfoBase.find(
-          (info: SubjectInfo) => info.abbreviation === entry.subject,
-        ) ?? null;
-
       const notice =
         notices.find(
           (notice: Notice) =>
-            notice.subject === entry.subject &&
+            (notice.subject === entry.subject ||
+              notice.oldSubject === entry.subject) &&
             JSON.stringify(notice.periods) === JSON.stringify(entry.periods) &&
             notice.date.getDay() == weekday,
         ) ?? null;
+
+      const subjectInfo =
+        subjectInfoBase.find(
+          (info: SubjectInfo) =>
+            info.abbreviation === (notice?.oldSubject ?? entry.subject),
+        ) ?? null;
+
+      const oldSubData = subjectInfoBase.find(
+        (info: SubjectInfo) => info.abbreviation === notice?.subject,
+      ) ?? null
+
+      const noticeModel: Notice | null = notice && {
+        ...notice,
+        subject: notice.subject
+          ? (user.lang === "en" ? oldSubData?.name ?? null : oldSubData?.nameDe ?? null) ?? notice.subject.toUpperCase()
+          : null,
+      };
+
       const currentEntry = convertEntryToCurrentEntry(
         entry,
         subjectInfo,
-        notice,
+        noticeModel,
         user.lang,
       );
       result.push(currentEntry);
@@ -181,7 +195,7 @@ function convertScheduleArray(
         const updatedPeriods = entryPeriods.filter(
           (period) =>
             period < (noticePeriods[0] ?? 0) ||
-            (noticePeriods.length > 1 && period > (noticePeriods[1] ?? 0)),
+            period > (noticePeriods[1] ?? noticePeriods[0] ?? 0),
         );
 
         // If periods changed, return updated entry
