@@ -11,7 +11,7 @@ export default function Start() {
         />
       </div>
       <div className="text-xl font-semibold">
-        Welcome to Paul's School Assistant!
+        Welcome to Schedule Bryan!
       </div>
       <div className="text-sm opacity-60">
         Tired of checking DSB? Yeah me too. Luckily this bot will message you
