@@ -5,9 +5,9 @@ import { type Metadata } from "next";
 import { ThemeProvider } from "~/components/themeProvider";
 
 export const metadata: Metadata = {
-  title: "Paul's School Assistant",
+  title: "Schedule Bryan",
   description: "Never check dsb again",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/icon.png" }],
 };
 
 export default function RootLayout({
