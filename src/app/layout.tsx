@@ -8,7 +8,7 @@ import { PostHogProvider } from "./providers";
 export const metadata: Metadata = {
   title: "Schedule Bryan",
   description: "Never check dsb again",
-  icons: [{ rel: "icon", url: "/icon.png" }],
+  icons: [{ rel: "icon", url: "/paulsIcon.svg" }],
 };
 
 export default function RootLayout({
